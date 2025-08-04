@@ -10,7 +10,9 @@
  */
 #include "BPlusTreeTitulares.h"
 #include <iostream>
-
+#include <SFML/Graphics.hpp>
+#include <vector>
+#include <queue>
 BPlusTreeTitulares::BPlusTreeTitulares(int grado_) : raiz(nullptr), grado(grado_) {}
 
 BPlusTreeTitulares::~BPlusTreeTitulares() {
@@ -391,4 +393,201 @@ void BPlusTreeTitulares::imprimirNodoArbolBPlus(NodoBPlus* nodo, int nivel) cons
             imprimirNodoArbolBPlus(nodo->hijos[i], nivel + 1);
         }
     }
+}
+
+void BPlusTreeTitulares::graficarArbol() const {
+    sf::RenderWindow window(sf::VideoMode(1200, 800), "B+ Tree Visualization");
+    window.setFramerateLimit(60);
+
+    // Configuración de la fuente
+    sf::Font font;
+    if (!font.loadFromFile("arial.ttf")) {
+        std::cerr << "Error: No se pudo cargar la fuente arial.ttf" << std::endl;
+        window.close();
+        system("pause");
+        return;
+    }
+
+    // Parámetros de visualización (nodos más grandes: 160x60 como base)
+    const float baseNodeWidth = 160.0f;
+    const float nodeHeight = 60.0f;
+    const float verticalSpacing = 120.0f;
+    const float horizontalSpacing = 30.0f;
+    const float textOffsetY = 15.0f;
+
+    // Estructura para almacenar posiciones de los nodos
+    struct NodeInfo {
+        NodoBPlus* nodo;
+        float x, y;
+        float nodeWidth; // Ancho dinámico por nodo
+        int nivel;
+        NodeInfo(NodoBPlus* n, float x_, float y_, float w, int lvl) : nodo(n), x(x_), y(y_), nodeWidth(w), nivel(lvl) {}
+    };
+
+    // Cola para recorrer el árbol por niveles
+    std::queue<NodeInfo> queue;
+    std::vector<std::vector<NodeInfo>> levels;
+    if (raiz) {
+        // Calcular ancho dinámico para la raíz
+        std::string rootText;
+        for (int i = 0; i < raiz->numClaves; ++i) {
+            rootText += raiz->claves[i];
+            if (i < raiz->numClaves - 1) rootText += ", ";
+        }
+        sf::Text tempText(rootText, font, 16);
+        float rootWidth = tempText.getLocalBounds().width + 20.0f; // Margen de 10 por lado
+        float startX = window.getSize().x / 2.0f;
+        queue.push(NodeInfo(raiz, startX, 50.0f, (rootWidth > baseNodeWidth ? rootWidth : baseNodeWidth), 0));
+    }
+
+    // Calcular posiciones de los nodos con ancho dinámico
+    while (!queue.empty()) {
+        NodeInfo current = queue.front();
+        queue.pop();
+        if (current.nivel >= static_cast<int>(levels.size())) {
+            levels.emplace_back();
+        }
+        levels[current.nivel].push_back(current);
+
+        if (!current.nodo->esHoja) {
+            float totalWidth = current.nodo->numClaves * (current.nodeWidth + horizontalSpacing);
+            float startX = current.x - totalWidth / 2.0f;
+            for (int i = 0; i <= current.nodo->numClaves; ++i) {
+                // Calcular ancho dinámico para el hijo
+                std::string childText;
+                if (current.nodo->hijos[i]) {
+                    for (int j = 0; j < current.nodo->hijos[i]->numClaves; ++j) {
+                        childText += current.nodo->hijos[i]->claves[j];
+                        if (j < current.nodo->hijos[i]->numClaves - 1) childText += ", ";
+                    }
+                    sf::Text tempText(childText, font, 16);
+                    float childWidth = tempText.getLocalBounds().width + 20.0f;
+                    float childX = startX + i * (current.nodeWidth + horizontalSpacing) + current.nodeWidth / 2.0f;
+                    float childY = current.y + verticalSpacing;
+                    if (current.nodo->hijos[i]) {
+                        queue.push(NodeInfo(current.nodo->hijos[i], childX, childY, (childWidth > baseNodeWidth ? childWidth : baseNodeWidth), current.nivel + 1));
+                    }
+                }
+            }
+        }
+    }
+
+    // Ajustar posiciones para evitar solapamientos y centrar el árbol
+    for (auto& level : levels) {
+        std::sort(level.begin(), level.end(), [](const NodeInfo& a, const NodeInfo& b) {
+            return a.x < b.x;
+        });
+        // Calcular el ancho total del nivel
+        float totalWidth = 0.0f;
+        for (const auto& node : level) {
+            totalWidth += node.nodeWidth;
+        }
+        totalWidth += (level.size() - 1) * horizontalSpacing;
+        float levelStartX = (window.getSize().x - totalWidth) / 2.0f;
+        float currentX = levelStartX;
+        for (auto& node : level) {
+            node.x = currentX + node.nodeWidth / 2.0f;
+            currentX += node.nodeWidth + horizontalSpacing;
+        }
+    }
+
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed || (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)) {
+                window.close();
+            }
+        }
+
+        window.clear(sf::Color::White);
+
+        // Dibujar conexiones entre nodos
+        for (const auto& level : levels) {
+            for (const auto& nodeInfo : level) {
+                NodoBPlus* nodo = nodeInfo.nodo;
+                if (!nodo->esHoja) {
+                    float parentX = nodeInfo.x;
+                    float parentY = nodeInfo.y + nodeHeight;
+                    for (int i = 0; i <= nodo->numClaves; ++i) {
+                        if (nodo->hijos[i]) {
+                            // Encontrar la posición del hijo
+                            float childX = 0.0f, childY = 0.0f;
+                            for (const auto& nextLevel : levels) {
+                                for (const auto& childInfo : nextLevel) {
+                                    if (childInfo.nodo == nodo->hijos[i]) {
+                                        childX = childInfo.x;
+                                        childY = childInfo.y;
+                                        break;
+                                    }
+                                }
+                            }
+                            sf::Vertex line[] = {
+                                sf::Vertex(sf::Vector2f(parentX, parentY), sf::Color::Black),
+                                sf::Vertex(sf::Vector2f(childX, childY), sf::Color::Black)
+                            };
+                            window.draw(line, 2, sf::Lines);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Dibujar nodos
+        for (const auto& level : levels) {
+            for (const auto& nodeInfo : level) {
+                NodoBPlus* nodo = nodeInfo.nodo;
+                float x = nodeInfo.x - nodeInfo.nodeWidth / 2.0f;
+                float y = nodeInfo.y;
+
+                // Dibujar rectángulo del nodo con ancho dinámico
+                sf::RectangleShape rect(sf::Vector2f(nodeInfo.nodeWidth, nodeHeight));
+                rect.setPosition(x, y);
+                rect.setFillColor(nodo->esHoja ? sf::Color(144, 238, 144) : sf::Color(173, 216, 230));
+                rect.setOutlineColor(sf::Color::Black);
+                rect.setOutlineThickness(2);
+                window.draw(rect);
+
+                // Construir texto con las claves
+                std::string texto;
+                for (int i = 0; i < nodo->numClaves; ++i) {
+                    texto += nodo->claves[i];
+                    if (i < nodo->numClaves - 1) texto += ", ";
+                }
+                sf::Text textoNodo(texto, font, 16);
+                textoNodo.setFillColor(sf::Color::Black);
+                // Ajustar posición para centrar el texto horizontalmente
+                float textX = x + (nodeInfo.nodeWidth - textoNodo.getLocalBounds().width) / 2.0f;
+                textoNodo.setPosition(textX, y + textOffsetY);
+                window.draw(textoNodo);
+
+                // Mostrar enlace a siguiente hoja si existe
+                if (nodo->esHoja && nodo->siguiente) {
+                    sf::Vertex line[] = {
+                        sf::Vertex(sf::Vector2f(x + nodeInfo.nodeWidth, y + nodeHeight / 2), sf::Color::Red),
+                        sf::Vertex(sf::Vector2f(x + nodeInfo.nodeWidth + 30, y + nodeHeight / 2), sf::Color::Red)
+                    };
+                    window.draw(line, 2, sf::Lines);
+                    sf::CircleShape arrow(7, 3);
+                    arrow.setPosition(x + nodeInfo.nodeWidth + 30, y + nodeHeight / 2 - 7);
+                    arrow.setFillColor(sf::Color::Red);
+                    arrow.setRotation(90);
+                    window.draw(arrow);
+                }
+            }
+        }
+
+        // Mensaje si el árbol está vacío
+        if (!raiz) {
+            sf::Text texto("Arbol B+ vacio", font, 24);
+            texto.setFillColor(sf::Color::Black);
+            texto.setPosition((window.getSize().x - texto.getLocalBounds().width) / 2, window.getSize().y / 2);
+            window.draw(texto);
+        }
+
+        window.display();
+    }
+
+    // Mostrar mensaje de cierre en consola
+    std::cout << "\nVentana de visualización cerrada. Regresando al menú...\n" << std::endl;
+    system("pause");
 }

@@ -15,7 +15,7 @@
 #include <fstream>
 #include <iostream>
 // Para QR real con libqrencode (descomenta cuando instales la libreria)
- #include <qrencode.h>
+#include <qrencode.h>
 using namespace std;
 
 Sistema::Sistema(): arbolTitulares(3) {
@@ -514,6 +514,7 @@ void Sistema::menuArbol(){
                 std::cout << "\n--- GRAFICAR ARBOL B+ (REPRESENTACION TEXTUAL) ---" << std::endl;
                 std::cout << "\nMostrando la estructura del Arbol B+ con niveles:\n";
                 arbolTitulares.imprimirArbolBPlus();
+                arbolTitulares.graficarArbol();
                 
                 system("pause");
                 break;

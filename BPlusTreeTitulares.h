@@ -31,6 +31,7 @@ public:
     NodoBPlus* getRaiz() const { return raiz; }
     void imprimirArbolBPlus() const;
     void imprimirNodoArbolBPlus(NodoBPlus* nodo, int nivel) const;
+    void graficarArbol() const;
 
 private:
     void insertarEnNodo(NodoBPlus* nodo, const std::string& ci, Titular* titular, NodoBPlus*& nuevoHijo, std::string& nuevaClave);
