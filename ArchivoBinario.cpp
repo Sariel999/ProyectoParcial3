@@ -18,7 +18,7 @@
 #include <iostream>
 #include <direct.h>
 using namespace std;
-
+// No hay como cambiar los for a for-each porque el for se esta ocupando para leer datos de un archivo binario
 // --- FUNCIONES AUXILIARES PARA STRINGS ---
 void escribirString(ofstream& archivo, const std::string& s) {
     size_t len = s.size();
@@ -408,4 +408,5 @@ bool ArchivoBinario::cargarBackup(ListaDobleCircular<Titular*>& titulares, const
 
     archivo.close();
     return true;
+
 }
