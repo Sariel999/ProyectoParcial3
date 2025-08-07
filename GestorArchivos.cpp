@@ -26,7 +26,7 @@ GestorArchivos::~GestorArchivos() {
 }
 
 /**
- * @brief Guarda los titulares y sus cuentas bancarias en un archivo de texto.
+ * @brief Guarda los titulares, sus cuentas bancarias y todos los movimientos en un archivo de texto.
  * 
  * @param titulares Lista de titulares del sistema
  */
@@ -47,7 +47,13 @@ void GestorArchivos::guardarTitularesEnTxt(const ListaDobleCircular<Titular*>& t
         return;
     }
 
+    archivo << "=========================================" << endl;
+    archivo << "       LISTADO COMPLETO DE TITULARES    " << endl;
+    archivo << "=========================================" << endl << endl;
+
     NodoDoble<Titular*>* actual = titulares.getCabeza();
+    int contadorTitular = 1;
+    
     if (actual) {
         do {
             Titular* titular = actual->dato;
@@ -55,44 +61,98 @@ void GestorArchivos::guardarTitularesEnTxt(const ListaDobleCircular<Titular*>& t
 
             cout << "Guardando titular: " << persona.getNombre() << " " << persona.getApellido() << endl;
 
-            archivo << "CI: " << persona.getCI() << " - Nombre: " << persona.getNombre() << " " 
-                    << persona.getApellido() << " - Tel: " << persona.getTelefono() << " - Correo: " 
-                    << persona.getCorreo() << " - Fecha Nacimiento: " 
-                    << persona.getFechaNa().getDia() << "/" << persona.getFechaNa().getMes() << "/" 
-                    << persona.getFechaNa().getAnio().getAnio() << "\n";
+            // Información del titular
+            archivo << "TITULAR #" << contadorTitular << endl;
+            archivo << "=========================================" << endl;
+            archivo << "CI: " << persona.getCI() << endl;
+            archivo << "Nombre Completo: " << persona.getNombre() << " " << persona.getApellido() << endl;
+            archivo << "Telefono: " << persona.getTelefono() << endl;
+            archivo << "Correo: " << persona.getCorreo() << endl;
+            archivo << "Fecha de Nacimiento: " << persona.getFechaNa().getDia() << "/" 
+                    << persona.getFechaNa().getMes() << "/" << persona.getFechaNa().getAnio().getAnio() << endl;
+            archivo << endl;
 
+            // Cuenta corriente y sus movimientos
             CuentaBancaria* cuentaCorriente = titular->getCuentaCorriente();
             if (cuentaCorriente) {
-                cout << "Guardando cuenta corriente de " << persona.getNombre() << endl;
+                cout << "Guardando cuenta corriente y movimientos de " << persona.getNombre() << endl;
                 archivo << "--- CUENTA CORRIENTE ---" << endl;
-                archivo << "ID Cuenta: " << cuentaCorriente->getID() << " - Tipo: " 
-                        << cuentaCorriente->getTipoCuenta() << " - Saldo: " 
-                        << cuentaCorriente->getSaldo() << "\n";
+                archivo << "ID Cuenta: " << cuentaCorriente->getID() << endl;
+                archivo << "Tipo: " << cuentaCorriente->getTipoCuenta() << endl;
+                archivo << "Saldo Actual: $" << cuentaCorriente->getSaldo() << endl;
+                
+                // Movimientos de cuenta corriente
+                ListaDobleCircular<Movimiento*>& movimientos = cuentaCorriente->getMovimientos();
+                if (!movimientos.vacia()) {
+                    archivo << "MOVIMIENTOS:" << endl;
+                    NodoDoble<Movimiento*>* nodoMov = movimientos.getCabeza();
+                    int numMov = 1;
+                    do {
+                        Movimiento* mov = nodoMov->dato;
+                        archivo << "  " << numMov << ". ID: " << mov->getIDMovimiento() 
+                                << " | Fecha: " << mov->getFechaMov().getDia() << "/" 
+                                << mov->getFechaMov().getMes() << "/" << mov->getFechaMov().getAnio().getAnio()
+                                << " | Tipo: " << (mov->getTipo() ? "DEPOSITO" : "RETIRO")
+                                << " | Monto: $" << mov->getMonto() << endl;
+                        nodoMov = nodoMov->siguiente;
+                        numMov++;
+                    } while (nodoMov != movimientos.getCabeza());
+                } else {
+                    archivo << "Sin movimientos registrados." << endl;
+                }
+                archivo << endl;
             } else {
-                cout << "No tiene cuenta corriente." << endl;
+                archivo << "--- SIN CUENTA CORRIENTE ---" << endl << endl;
             }
 
+            // Cuentas de ahorro y sus movimientos
             NodoDoble<CuentaBancaria*>* nodoAhorro = titular->getCuentasAhorro().getCabeza();
             if (nodoAhorro) {
-                cout << "Guardando cuentas de ahorro de " << persona.getNombre() << endl;
+                cout << "Guardando cuentas de ahorro y movimientos de " << persona.getNombre() << endl;
+                int contadorAhorro = 1;
                 do {
-                    archivo << "--- CUENTA DE AHORRO ---" << endl;
-                    archivo << "ID Cuenta: " << nodoAhorro->dato->getID() << " - Tipo: " 
-                            << nodoAhorro->dato->getTipoCuenta() << " - Saldo: " 
-                            << nodoAhorro->dato->getSaldo() << "\n";
+                    CuentaBancaria* cuentaAhorro = nodoAhorro->dato;
+                    archivo << "--- CUENTA DE AHORRO #" << contadorAhorro << " ---" << endl;
+                    archivo << "ID Cuenta: " << cuentaAhorro->getID() << endl;
+                    archivo << "Tipo: " << cuentaAhorro->getTipoCuenta() << endl;
+                    archivo << "Saldo Actual: $" << cuentaAhorro->getSaldo() << endl;
+                    
+                    // Movimientos de cuenta de ahorro
+                    ListaDobleCircular<Movimiento*>& movimientosAhorro = cuentaAhorro->getMovimientos();
+                    if (!movimientosAhorro.vacia()) {
+                        archivo << "MOVIMIENTOS:" << endl;
+                        NodoDoble<Movimiento*>* nodoMovAhorro = movimientosAhorro.getCabeza();
+                        int numMovAhorro = 1;
+                        do {
+                            Movimiento* movAhorro = nodoMovAhorro->dato;
+                            archivo << "  " << numMovAhorro << ". ID: " << movAhorro->getIDMovimiento() 
+                                    << " | Fecha: " << movAhorro->getFechaMov().getDia() << "/" 
+                                    << movAhorro->getFechaMov().getMes() << "/" << movAhorro->getFechaMov().getAnio().getAnio()
+                                    << " | Tipo: " << (movAhorro->getTipo() ? "DEPOSITO" : "RETIRO")
+                                    << " | Monto: $" << movAhorro->getMonto() << endl;
+                            nodoMovAhorro = nodoMovAhorro->siguiente;
+                            numMovAhorro++;
+                        } while (nodoMovAhorro != movimientosAhorro.getCabeza());
+                    } else {
+                        archivo << "Sin movimientos registrados." << endl;
+                    }
+                    archivo << endl;
+                    
                     nodoAhorro = nodoAhorro->siguiente;
+                    contadorAhorro++;
                 } while (nodoAhorro != titular->getCuentasAhorro().getCabeza());
             } else {
-                cout << "No tiene cuentas de ahorro." << endl;
+                archivo << "--- SIN CUENTAS DE AHORRO ---" << endl << endl;
             }
 
-            archivo << "\n";
+            archivo << "=========================================" << endl << endl;
             actual = actual->siguiente;
+            contadorTitular++;
         } while (actual != titulares.getCabeza());
     }
 
     archivo.close();
-    cout << "\nTitulares guardados exitosamente en 'titulares.txt'.\n" << endl;
+    cout << "\nTitulares, cuentas y movimientos guardados exitosamente en 'titulares.txt'.\n" << endl;
 
     // Generar y guardar el hash MD5
     string hash = generarHashMD5("titulares.txt");
@@ -118,23 +178,24 @@ void GestorArchivos::guardarTitularesEnTxt(const ListaDobleCircular<Titular*>& t
 }
 
 /**
- * @brief Genera un archivo PDF con los titulares registrados.
+ * @brief Genera un archivo PDF completo con los titulares, cuentas y movimientos registrados.
  * 
  */
 void GestorArchivos::generarPDFTitulares() {
     system("cls");
-    cout << "\n--- GENERAR PDF DE TITULARES ---\n" << endl;
+    cout << "\n--- GENERAR PDF COMPLETO DE TITULARES ---\n" << endl;
 
-    // Open the input text file
+    // Verificar que existe el archivo de titulares
     ifstream archivo("titulares.txt");
     if (!archivo) {
-        cout << "\nNo se pudo abrir el archivo 'titulares.txt'.\n" << endl;
+        cout << "\nNo se pudo abrir el archivo 'titulares.txt'." << endl;
+        cout << "Asegurese de guardar primero los titulares en archivo TXT.\n" << endl;
         system("pause");
         return;
     }
 
-    // Output PDF file
-    string outputFile = "titulares.pdf";
+    // Archivo PDF de salida
+    string outputFile = "titulares_completo.pdf";
     ofstream pdf(outputFile, ios::binary);
     if (!pdf) {
         cout << "\nNo se pudo crear el archivo PDF.\n" << endl;
@@ -143,70 +204,83 @@ void GestorArchivos::generarPDFTitulares() {
         return;
     }
 
-    // Write PDF header
+    cout << "Generando PDF con informacion completa de titulares, cuentas y movimientos..." << endl;
+
+    // Escribir cabecera del PDF
     pdf << "%PDF-1.4\n";
 
-    // Object 1: Catalog
+    // Objeto 1: Catálogo
     pdf << "1 0 obj\n"
         << "<< /Type /Catalog /Pages 2 0 R >>\n"
         << "endobj\n";
 
-    // Object 2: Pages
+    // Objeto 2: Páginas
     pdf << "2 0 obj\n"
         << "<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n"
         << "endobj\n";
 
-    // Object 3: Page
+    // Objeto 3: Página
     pdf << "3 0 obj\n"
-        << "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 595 842] /Contents 5 0 R >>\n"
+        << "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /MediaBox [0 0 595 842] /Contents 6 0 R >>\n"
         << "endobj\n";
 
-    // Object 4: Font
+    // Objeto 4: Fuente normal
     pdf << "4 0 obj\n"
         << "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n"
         << "endobj\n";
 
-    // Object 5: Content stream
+    // Objeto 5: Fuente negrita
+    pdf << "5 0 obj\n"
+        << "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\n"
+        << "endobj\n";
+
+    // Objeto 6: Contenido
     stringstream contenido;
-    contenido << "5 0 obj\n"
-              << "<< /Length " << /* Length placeholder */ " >>\n"
+    contenido << "6 0 obj\n"
+              << "<< /Length ";
+    
+    // Placeholder para la longitud
+    size_t longitudPos = contenido.tellp();
+    contenido << "XXXX >>\n"
               << "stream\n"
-              << "BT\n"
-              << "/F1 12 Tf\n"
-              << "1 0 0 1 50 792 Tm\n" // Set text matrix (start at top-left, 50,792)
-              << "(Listado de Titulares) Tj\n";
+              << "BT\n";
 
-    // Adjust text position
-    float yPos = 772; // Start below the title
-    const float lineSpacing = 14; // Space between lines
-    const float pageBottom = 50; // Bottom margin
+    // Título principal
+    contenido << "/F2 16 Tf\n"  // Fuente negrita, tamaño 16
+              << "1 0 0 1 50 800 Tm\n"  // Posición inicial
+              << "(SISTEMA BANCARIO MICHIBANK) Tj\n"
+              << "0 -20 Td\n"
+              << "/F2 14 Tf\n"
+              << "(Listado Completo de Titulares, Cuentas y Movimientos) Tj\n"
+              << "0 -10 Td\n"
+              << "/F1 10 Tf\n"
+              << "(Fecha de generacion: " << __DATE__ << " " << __TIME__ << ") Tj\n";
 
-    // Read the text file line by line
+    float yPos = 750; // Posición Y actual
+    const float lineSpacing = 12; // Espaciado entre líneas
+    const float pageBottom = 50; // Margen inferior
+    const float pageTop = 800; // Margen superior
+
+    // Leer y procesar el archivo línea por línea
     string linea;
+    bool esTitulo = false;
+    bool esCuenta = false;
+    bool esMovimiento = false;
+
     while (getline(archivo, linea)) {
-        // Check if we need a new page (simple pagination)
+        // Verificar si necesitamos una nueva página
         if (yPos < pageBottom) {
             contenido << "ET\n"
                       << "endstream\n"
                       << "endobj\n";
-            // Update length and write current content
-            string contenidoStr = contenido.str();
-            string longitud = to_string(contenidoStr.size() - string("5 0 obj\n<< /Length  >> stream\n").size() - string("endstream\nendobj\n").size());
-            contenidoStr.replace(contenidoStr.find("/Length ") + 8, 0, longitud);
-            pdf << contenidoStr;
-
-            // Start a new page (simplified: new content stream)
-            contenido.str(""); // Clear stream
-            yPos = 792; // Reset Y position
-            contenido << "5 0 obj\n"
-                      << "<< /Length " << /* Length placeholder */ " >>\n"
-                      << "stream\n"
-                      << "BT\n"
-                      << "/F1 12 Tf\n"
-                      << "1 0 0 1 50 792 Tm\n";
+            // En una implementación completa, aquí crearías una nueva página
+            yPos = pageTop; // Reiniciar posición
+            contenido << "BT\n"
+                      << "/F1 10 Tf\n"
+                      << "1 0 0 1 50 " << yPos << " Tm\n";
         }
 
-        // Escape special characters for PDF
+        // Escapar caracteres especiales para PDF
         string escapedLine = linea;
         for (size_t i = 0; i < escapedLine.size(); ++i) {
             if (escapedLine[i] == '(' || escapedLine[i] == ')' || escapedLine[i] == '\\') {
@@ -215,50 +289,103 @@ void GestorArchivos::generarPDFTitulares() {
             }
         }
 
-        // Write line to PDF
-        contenido << "0 -" << lineSpacing << " Td\n"
-                  << "(" << escapedLine << ") Tj\n";
-        yPos -= lineSpacing;
+        // Determinar el tipo de línea y aplicar formato apropiado
+        if (escapedLine.find("TITULAR #") != string::npos) {
+            // Título de titular
+            contenido << "0 -" << lineSpacing * 2 << " Td\n"
+                      << "/F2 12 Tf\n"  // Negrita
+                      << "(" << escapedLine << ") Tj\n";
+            yPos -= lineSpacing * 2;
+        } else if (escapedLine.find("CUENTA CORRIENTE") != string::npos || 
+                   escapedLine.find("CUENTA DE AHORRO") != string::npos) {
+            // Títulos de cuentas
+            contenido << "0 -" << lineSpacing * 1.5 << " Td\n"
+                      << "/F2 10 Tf\n"  // Negrita, tamaño menor
+                      << "(" << escapedLine << ") Tj\n";
+            yPos -= lineSpacing * 1.5;
+        } else if (escapedLine.find("MOVIMIENTOS:") != string::npos) {
+            // Título de movimientos
+            contenido << "0 -" << lineSpacing << " Td\n"
+                      << "/F2 9 Tf\n"   // Negrita, tamaño pequeño
+                      << "(" << escapedLine << ") Tj\n";
+            yPos -= lineSpacing;
+        } else if (escapedLine.find("  ") == 0 && escapedLine.find(". ID:") != string::npos) {
+            // Movimientos individuales (líneas que empiezan con espacios)
+            contenido << "0 -" << lineSpacing * 0.8 << " Td\n"
+                      << "/F1 8 Tf\n"   // Fuente normal, pequeña
+                      << "(" << escapedLine << ") Tj\n";
+            yPos -= lineSpacing * 0.8;
+        } else if (!escapedLine.empty() && escapedLine.find("===") == string::npos) {
+            // Líneas normales de información
+            contenido << "0 -" << lineSpacing << " Td\n"
+                      << "/F1 9 Tf\n"   // Fuente normal
+                      << "(" << escapedLine << ") Tj\n";
+            yPos -= lineSpacing;
+        } else if (escapedLine.find("===") != string::npos) {
+            // Líneas separadoras - saltar sin imprimir
+            contenido << "0 -" << lineSpacing * 0.5 << " Td\n";
+            yPos -= lineSpacing * 0.5;
+        }
     }
 
     contenido << "ET\n"
               << "endstream\n"
               << "endobj\n";
 
-    // Update content length
+    // Calcular la longitud real del contenido
     string contenidoStr = contenido.str();
-    string longitud = to_string(contenidoStr.size() - string("5 0 obj\n<< /Length  >> stream\n").size() - string("endstream\nendobj\n").size());
-    contenidoStr.replace(contenidoStr.find("/Length ") + 8, 0, longitud);
+    string streamContent = contenidoStr.substr(contenidoStr.find("stream\n") + 7);
+    streamContent = streamContent.substr(0, streamContent.find("\nendstream"));
+    size_t longitudReal = streamContent.length();
+
+    // Reemplazar el placeholder con la longitud real
+    string longitudStr = to_string(longitudReal);
+    while (longitudStr.length() < 4) longitudStr = " " + longitudStr;
+    contenidoStr.replace(contenidoStr.find("XXXX"), 4, longitudStr);
+
     pdf << contenidoStr;
 
-    // Cross-reference table
+    // Tabla de referencias cruzadas
     pdf << "xref\n"
-        << "0 6\n"
+        << "0 7\n"
         << "0000000000 65535 f \n";
-    stringstream xref;
-    xref << setfill('0') << setw(10);
-    size_t offset = 9; // Length of "%PDF-1.4\n"
-    xref << offset << " 00000 n \n";
+
+    // Calcular offsets (simplificado)
+    size_t offset = 9; // Longitud de "%PDF-1.4\n"
+    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
+    
     offset += string("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n").size();
-    xref << offset << " 00000 n \n";
+    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
+    
     offset += string("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n").size();
-    xref << offset << " 00000 n \n";
-    offset += string("3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 595 842] /Contents 5 0 R >>\nendobj\n").size();
-    xref << offset << " 00000 n \n";
+    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
+    
+    offset += string("3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /MediaBox [0 0 595 842] /Contents 6 0 R >>\nendobj\n").size();
+    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
+    
     offset += string("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n").size();
-    xref << offset << " 00000 n \n";
-    pdf << xref.str();
+    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
+    
+    offset += string("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n").size();
+    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
 
     // Trailer
     pdf << "trailer\n"
-        << "<< /Size 6 /Root 1 0 R >>\n"
+        << "<< /Size 7 /Root 1 0 R >>\n"
         << "startxref\n"
         << offset << "\n"
         << "%%EOF\n";
 
     pdf.close();
     archivo.close();
-    cout << "\nPDF generado exitosamente: " << outputFile << "\n" << endl;
+    
+    cout << "\nPDF completo generado exitosamente: " << outputFile << endl;
+    cout << "El archivo contiene informacion detallada de:" << endl;
+    cout << "- Datos personales de titulares" << endl;
+    cout << "- Informacion de cuentas corrientes y de ahorro" << endl;
+    cout << "- Historial completo de movimientos por cuenta" << endl;
+    cout << "- Fechas y montos de todas las transacciones\n" << endl;
+    
     system("pause");
 }
 
