@@ -21,6 +21,8 @@
 #include "GestorTitulares.h"
 #include "OperacionesBancarias.h"
 #include "GestorArchivos.h"
+#include "GestorArchivosBinarios.h"
+#include "GestorBusquedas.h"
 #include <vector>
 #include <string>
 
@@ -35,6 +37,8 @@ private:
     GestorTitulares gestorTitulares;
     OperacionesBancarias operacionesBancarias;
     GestorArchivos gestorArchivos;
+    GestorArchivosBinarios gestorArchivosBinarios;
+    GestorBusquedas gestorBusquedas;
 
     Titular* buscarTitularPorCI(const std::string& cedula);
     void actualizarContadoresSucursales();
@@ -49,16 +53,13 @@ public:
     void realizarDeposito();
     void realizarRetiro();
     void buscarMovimientosPorFecha();
-    void generarPDFTitulares();
     void buscarPorTitular();
     void buscarPersonalizada();
+    void generarPDFTitulares();
     void crearBackup();
     void mostrarAyuda();
     void menuSecundario();
     void menuArbol();
-    void guardarArchivoBinCifrado();
-    void guardarArchivoBinSinCifrar();
-    void decifrarArchivoCifrado();
     void busquedasBinarias();
     void menuBB();
     void guardarTitularesEnTxt();
