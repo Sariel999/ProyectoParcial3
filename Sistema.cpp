@@ -98,7 +98,6 @@ void Sistema::generarPDFTitulares() {
     float yPos = 772; // Start below the title
     const float lineSpacing = 14; // Space between lines
     const float pageBottom = 50; // Bottom margin
-    const float pageHeight = 842; // A4 height in points
 
     // Read the text file line by line
     string linea;
@@ -594,7 +593,6 @@ void Sistema::realizarDeposito() {
     }
     } while (monto < 10.0);
     // Obtener el número de movimiento
-    ListaDobleCircular<Movimiento*>& movs = cuenta->getMovimientos();
     int numMov = 1;
     if (!cuenta->getMovimientos().vacia()) {
         numMov = cuenta->getMovimientos().getCabeza()->anterior->dato->getNumeroMovimiento() + 1;

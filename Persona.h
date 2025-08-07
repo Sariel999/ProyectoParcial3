@@ -29,10 +29,10 @@ public:
 
 protected:
 private:
-   std::string CI;
-   std::string telefono;
    std::string nombre;
    std::string apellido;
+   std::string CI;
+   std::string telefono;
    std::string correo;
    Fecha fechaNa;
 

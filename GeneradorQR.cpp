@@ -55,7 +55,7 @@ void GeneradorQR::generarQRPDF(const ListaDobleCircular<Titular*>& titulares) {
         return;
     }
 
-    string cedula = val.ingresarCedula("\nIngrese cedula del titular para generar QR:");
+    string cedula = val.ingresarCedula(const_cast<char*>("\nIngrese cedula del titular para generar QR:"));
     Titular* titular = buscarTitularPorCI(titulares, cedula);
     
     if (!titular) {
@@ -296,7 +296,7 @@ void GeneradorQR::generarQRSimple(const string& data, bool qrMatrix[21][21]) {
     for (int i = 9; i < 13; i++) {
         for (int j = 9; j < 13; j++) {
             int charIndex = ((i - 9) * 4 + (j - 9)) % data.length();
-            if (charIndex < data.length()) {
+            if (charIndex < static_cast<int>(data.length())) {
                 char c = data[charIndex];
                 qrMatrix[i][j] = ((c + i + j + hashValue) % 2 == 0);
             }

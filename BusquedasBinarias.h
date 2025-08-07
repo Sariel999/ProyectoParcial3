@@ -28,8 +28,6 @@ public:
         };
 
         // Usar búsqueda binaria de Ordenamiento
-        Ordenamiento<Movimiento*, decltype(cmpDeposito)> ord;
-        NodoDoble<Movimiento*>* nodo = nullptr;
         int n = 0;
         NodoDoble<Movimiento*>* actual = lista.getCabeza();
         if (!actual) return nullptr;
@@ -112,7 +110,6 @@ public:
         };
 
         // Búsqueda binaria usando Ordenamiento
-        NodoDoble<Titular*>* nodo = nullptr;
         int n = 0;
         NodoDoble<Titular*>* actual = lista.getCabeza();
         if (!actual) return nullptr;

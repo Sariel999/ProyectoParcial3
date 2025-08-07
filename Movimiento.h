@@ -12,8 +12,8 @@ private:
     float monto;
     Fecha fechaMov;
     Hora time;
-    int numeroMovimiento; // Número de movimiento asignado por el titular
     bool tipo; // true = deposito, false = retiro
+    int numeroMovimiento; // Número de movimiento asignado por el titular
     void generarID(bool esDeposito); // Construye el ID único usando concatenación
 
 public:
