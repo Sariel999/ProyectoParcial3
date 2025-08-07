@@ -20,6 +20,7 @@
 #include "GeneradorQR.h"
 #include "GestorTitulares.h"
 #include "OperacionesBancarias.h"
+#include "GestorArchivos.h"
 #include <vector>
 #include <string>
 
@@ -33,11 +34,10 @@ private:
     GeneradorQR generadorQR;
     GestorTitulares gestorTitulares;
     OperacionesBancarias operacionesBancarias;
+    GestorArchivos gestorArchivos;
 
     Titular* buscarTitularPorCI(const std::string& cedula);
     void actualizarContadoresSucursales();
-    std::string generarHashMD5(const std::string& nombreArchivo);
-    bool compararHashArchivo(const std::string& nombreArchivo);
 
 public:
     Sistema();
