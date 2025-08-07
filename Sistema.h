@@ -19,6 +19,7 @@
 #include "TablaHash.h"
 #include "GeneradorQR.h"
 #include "GestorTitulares.h"
+#include "OperacionesBancarias.h"
 #include <vector>
 #include <string>
 
@@ -31,6 +32,7 @@ private:
     TablaHash hashes;
     GeneradorQR generadorQR;
     GestorTitulares gestorTitulares;
+    OperacionesBancarias operacionesBancarias;
 
     Titular* buscarTitularPorCI(const std::string& cedula);
     void actualizarContadoresSucursales();

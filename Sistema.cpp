@@ -400,89 +400,11 @@ void Sistema::crearCuenta() {
     gestorTitulares.crearCuenta(titulares, listaSucursales);
 }
 /**
- * @brief Realiza un depósito en una cuenta bancaria de un titular.
+ * @brief Realiza un deposito en una cuenta bancaria de un titular.
  * 
  */
 void Sistema::realizarDeposito() {
-    if (titulares.vacia()) {
-        cout << "\nNo hay titulares registrados.\n" << endl;
-        system("pause");
-        return;
-    }
-    system("cls");
-    cout << "\n--- REALIZAR DEPOSITO ---" << endl;
-
-    string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular:");
-    Titular* titular = buscarTitularPorCI(cedula);
-
-    if (!titular) {
-        cout << "\nTitular no encontrado." << endl;
-        system("pause");
-        return;
-    }
-
-    if (!titular->getCuentaCorriente() && titular->getCuentasAhorro().vacia()) {
-        cout << "\nEl titular no tiene cuentas registradas.\n" << endl;
-        system("pause");
-        return;
-    }
-
-    string tipo = val.ingresarCadena((char*)"\nTipo de cuenta (Corriente/Ahorro):");
-    for (char& c : tipo) c = toupper(c);
-    CuentaBancaria* cuenta = nullptr;
-
-    string idCuenta = val.ingresarNumeros((char*)"\nIngrese ID de la cuenta:");
-
-    if (tipo == "CORRIENTE") {
-        cuenta = titular->getCuentaCorriente();
-        if (!cuenta || cuenta->getID() != idCuenta) {
-            cout << "\nCuenta corriente no encontrada o ID incorrecto.\n" << endl;
-            system("pause");
-            return;
-        }
-    } else if (tipo == "AHORRO") {
-        NodoDoble<CuentaBancaria*>* actual = titular->getCuentasAhorro().getCabeza();
-        if (actual) {
-            do {
-                if (actual->dato->getID() == idCuenta) {
-                    cuenta = actual->dato;
-                    break;
-                }
-                actual = actual->siguiente;
-            } while (actual != titular->getCuentasAhorro().getCabeza());
-        }
-        if (!cuenta) {
-            cout << "\nCuenta de ahorro no encontrada.\n" << endl;
-            system("pause");
-            return;
-        }
-    } else {
-        cout << "\nTipo de cuenta no valido.\n" << endl;
-        system("pause");
-        return;
-    }
-
-    float monto;
-    do {
-    monto = val.ingresarMonto((char*)"\nIngrese monto a depositar:\n");
-    if (monto < 10.0) {
-        printf("Error: El monto debe ser de 10 dolares o mas.\n");
-    }
-    } while (monto < 10.0);
-    // Obtener el número de movimiento
-    int numMov = 1;
-    if (!cuenta->getMovimientos().vacia()) {
-        numMov = cuenta->getMovimientos().getCabeza()->anterior->dato->getNumeroMovimiento() + 1;
-    }
-
-    Movimiento* mov = new Movimiento(monto, true, numMov);
-    cuenta->agregarMovimiento(mov);  // Ya actualiza el saldo
-
-    cout << "\nDeposito realizado exitosamente.\n" << endl;
-    Backups backup;
-    backup.crearBackup(titulares);
-    system("pause");
-    
+    operacionesBancarias.realizarDeposito(titulares);
 }
 
 /**
@@ -490,102 +412,7 @@ void Sistema::realizarDeposito() {
  * 
  */
 void Sistema::realizarRetiro() {
-    if (titulares.vacia()) {
-        cout << "\nNo hay titulares registrados.\n" << endl;
-        system("pause");
-        return;
-    }
-    system("cls");
-    cout << "\n--- REALIZAR RETIRO ---" << endl;
-
-    string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular:");
-    Titular* titular = buscarTitularPorCI(cedula);
-
-    if (!titular) {
-        cout << "\nTitular no encontrado." << endl;
-        system("pause");
-        return;
-    }
-
-    if (!titular->getCuentaCorriente() && titular->getCuentasAhorro().vacia()) {
-        cout << "\nEl titular no tiene cuentas registradas.\n" << endl;
-        system("pause");
-        return;
-    }
-
-    string tipo = val.ingresarCadena((char*)"\nTipo de cuenta (Corriente/Ahorro):");
-    for (char& c : tipo) c = toupper(c);
-    CuentaBancaria* cuenta = nullptr;
-
-    string idCuenta = val.ingresarNumeros((char*)"\nIngrese ID de la cuenta:");
-
-    if (tipo == "CORRIENTE") {
-        cuenta = titular->getCuentaCorriente();
-        if (!cuenta || cuenta->getID() != idCuenta) {
-            cout << "\nCuenta corriente no encontrada o ID incorrecto.\n" << endl;
-            system("pause");
-            return;
-        }
-    } else if (tipo == "AHORRO") {
-        NodoDoble<CuentaBancaria*>* actual = titular->getCuentasAhorro().getCabeza();
-        if (actual) {
-            do {
-                if (actual->dato->getID() == idCuenta) {
-                    cuenta = actual->dato;
-                    break;
-                }
-                actual = actual->siguiente;
-            } while (actual != titular->getCuentasAhorro().getCabeza());
-        }
-        if (!cuenta) {
-            cout << "\nCuenta de ahorro no encontrada.\n" << endl;
-            system("pause");
-            return;
-        }
-    } else {
-        cout << "\nTipo de cuenta no valido.\n" << endl;
-        system("pause");
-        return;
-    }
-
-    float monto = val.ingresarMonto((char*)"\nIngrese monto a retirar:\n");
-    if (monto > cuenta->getSaldo()|| monto<10) {
-        cout << "\nSaldo insuficiente para realizar el retiro o monto menor a 10 dolares\n" << endl;
-        system("pause");
-        return;
-    }
-    // Obtener el número de movimiento
-    ListaDobleCircular<Movimiento*>& movs = cuenta->getMovimientos();
-    int numMov = 1;
-    if (!cuenta->getMovimientos().vacia()) {
-        numMov = cuenta->getMovimientos().getCabeza()->anterior->dato->getNumeroMovimiento() + 1;
-    }
-    Movimiento* mov = new Movimiento(monto, false, numMov);
-    cuenta->agregarMovimiento(mov);
-   // cuenta->setSaldo(cuenta->getSaldo() - monto);
-
-    // *** Obtener la lista actualizada después de agregar el movimiento ***
-    movs = cuenta->getMovimientos();
-    cout << "\n[DEBUG] Movimientos en la cuenta " << cuenta->getID() << " tras la operación:\n";
-    NodoDoble<Movimiento*>* actualMov = movs.getCabeza();
-    if (actualMov) {
-        do {
-            Movimiento* m = actualMov->dato;
-            if (m) {
-                std::cout << "  Movimiento #" << m->getNumeroMovimiento()
-                          << " | Monto: " << m->getMonto()
-                          << " | Tipo: " << (m->getTipo() ? "Deposito" : "Retiro")
-                          << std::endl;
-            }
-            actualMov = actualMov->siguiente;
-        } while (actualMov != movs.getCabeza());
-    }
-
-    cout << "\nRetiro realizado exitosamente.\n" << endl;
-    Backups backup;
-    backup.crearBackup(titulares);
-    system("pause");
-
+    operacionesBancarias.realizarRetiro(titulares);
 }
 
 void Sistema::guardarArchivoBinCifrado() {
