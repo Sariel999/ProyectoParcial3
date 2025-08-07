@@ -18,6 +18,7 @@
 #include "BPlusTreeTitulares.h"
 #include "TablaHash.h"
 #include "GeneradorQR.h"
+#include "GestorTitulares.h"
 #include <vector>
 #include <string>
 
@@ -29,6 +30,7 @@ private:
     ListaSucursales listaSucursales;
     TablaHash hashes;
     GeneradorQR generadorQR;
+    GestorTitulares gestorTitulares;
 
     Titular* buscarTitularPorCI(const std::string& cedula);
     void actualizarContadoresSucursales();

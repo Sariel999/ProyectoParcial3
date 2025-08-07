@@ -381,146 +381,23 @@ void Sistema::menuSecundario(){
  * 
  */
 void Sistema::registrarTitular() {
-    system("cls");
-    cout << "\n--- REGISTRAR TITULAR --- \n" << endl;
-    string nombre = val.ingresarCadena((char*)"Ingrese nombre:");
-    string apellido = val.ingresarCadena((char*)"\nIngrese apellido:");
-    for (char& c : nombre) c = toupper(c);
-    for (char& c : apellido) c = toupper(c);
-    string cedula = val.ingresarCedula((char*)"\nIngrese cedula:");
-    if (buscarTitularPorCI(cedula) != nullptr) {
-        cout << "\nYa existe un titular registrado con esa cedula.\n" << endl;
-        system("pause");
-        return;
-    }
-    string telefono = val.ingresarNumeroTelefonico((char*)"\nIngrese telefono:");
-    string correo = val.ingresarCorreo((char*)"\nIngrese correo electronico:");
-
-    // Ingreso y validación de fecha de nacimiento usando ValidacionFecha
-    ValidacionFecha valFecha;
-    string fechaStr;
-    int dia, mes, anio;
-    bool fechaValida = false;
-    do {
-        valFecha.ingresarFecha(fechaStr, dia, mes, anio);
-        if (!valFecha.valoresValidos(dia, mes, anio)) {
-            cout << "\nFecha invalida. Intente de nuevo." << endl;
-            system("pause");
-            continue;
-        }
-        if (!valFecha.esMayorDeEdad(dia, mes, anio)) {
-            cout << "\nNo puede registrarse. Debe ser mayor de edad (18+)." << endl;
-            system("pause");
-            return;
-        }
-        fechaValida = true;
-    } while (!fechaValida);
-
-    Anio anioObj;
-    anioObj.setAnio(anio);
-    anioObj.setAnioBisiesto(valFecha.esBisiesto(anio));
-
-    Fecha fechaNacimiento;
-    fechaNacimiento.setDia(dia);
-    fechaNacimiento.setMes(mes);
-    fechaNacimiento.setAnio(anioObj);
-
-    Persona persona(nombre, apellido, cedula, telefono, correo, fechaNacimiento);
-
-    // Crear Titular con la persona
-    Titular* nuevo = new Titular(persona);
-
-    // Insertar el nuevo titular en la lista y en el árbol B+
-    titulares.insertar(nuevo);
-    arbolTitulares.insertar(cedula, nuevo);
-    
-    arbolTitulares.imprimir();
-    std::cout.flush();
-    cout << "\nTitular registrado exitosamente." << endl;
-    Backups backup;
-    backup.crearBackup(titulares);
-    system("pause");
+    gestorTitulares.registrarTitular(titulares, arbolTitulares);
 }
 /**
- * @brief Busca un titular por su cédula de identidad (CI).
+ * @brief Busca un titular por su cedula de identidad (CI).
  * 
  * @param ci 
  * @return Titular* 
  */
 Titular* Sistema::buscarTitularPorCI(const std::string& ci) {
-    NodoDoble<Titular*>* actual = titulares.getCabeza();
-    if (actual != nullptr) {
-        do {
-            if (actual->dato->getPersona().getCI() == ci)
-                return actual->dato;
-            actual = actual->siguiente;
-        } while (actual != titulares.getCabeza());
-    }
-    return nullptr;
+    return gestorTitulares.buscarTitularPorCI(titulares, ci);
 }
 /**
  * @brief Crea una nueva cuenta bancaria para un titular existente.
  * 
  */
 void Sistema::crearCuenta() {
-    system("cls");
-    cout << "\n--- CREAR CUENTA ---\n" << endl;
-    string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular: ");
-    Titular* titular = buscarTitularPorCI(cedula);
-    if (!titular) {
-        cout << "\nTitular no encontrado." << endl;
-        system("pause");
-        return;
-    }
-    cout << "\nSeleccione la sucursal para la cuenta:\n";
-    listaSucursales.mostrarSucursales();
-    string idSucursal = val.ingresarCodigoSucursal((char*)"\nIngrese el ID de la sucursal: ");
-    if (!listaSucursales.existeSucursal(idSucursal)) {
-        cout << "\nSucursal no encontrada." << endl;
-        system("pause");
-        return;
-    }
-    NodoSucursal* nodo = listaSucursales.getCabeza();
-    while (nodo != nullptr) {
-        if (nodo->sucursal.getIdSucursal() == idSucursal) {
-            nodo->sucursal.incrementarContadorCuentas();
-            break;
-        }
-        nodo = nodo->siguiente;
-    }
-    string tipo = val.ingresarCadena((char*)"\nIngrese tipo de cuenta (Corriente/Ahorro): ");
-    CuentaBancaria* nuevaCuenta = new CuentaBancaria(idSucursal);
-    for (char& c : tipo) c = toupper(c);
-    nuevaCuenta->setTipoCuenta(tipo);
-
-    if (tipo == "CORRIENTE") {
-        if (titular->getCuentaCorriente() != nullptr) {
-            cout << "\nEste titular ya tiene una cuenta corriente.\n" << endl;
-            delete nuevaCuenta;
-        } else {
-            titular->setCuentaCorriente(nuevaCuenta);
-            cout << "\nCuenta corriente creada exitosamente.\n" << endl;
-            cout << "--- DATOS DEL TITULAR ---" << endl;
-            titular->getPersona().imprimir();
-            cout << "--- DATOS DE LA CUENTA ---" << endl;
-            nuevaCuenta->imprimir(); // <-- Aquí muestras la información
-        }
-    } else if (tipo == "AHORRO") {
-        titular->agregarCuentaAhorro(nuevaCuenta);
-        cout << "\nCuenta de ahorro creada exitosamente.\n" << endl;
-        cout << "--- DATOS DEL TITULAR ---" << endl;
-        titular->getPersona().imprimir();
-        cout << "--- DATOS DE LA CUENTA ---" << endl;
-        nuevaCuenta->imprimir();  // <-- Aquí muestras la información
-    } else {
-        cout << "\nTipo de cuenta no valido.\n" << endl;
-        delete nuevaCuenta;
-    }
-
-    Backups backup;
-    backup.crearBackup(titulares);
-    system("pause");
-
+    gestorTitulares.crearCuenta(titulares, listaSucursales);
 }
 /**
  * @brief Realiza un depósito en una cuenta bancaria de un titular.
