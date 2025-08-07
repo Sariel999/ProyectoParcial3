@@ -27,6 +27,7 @@ MenuBusquedasBinarias::~MenuBusquedasBinarias() {
  * @param titulares Lista de titulares del sistema
  */
 void MenuBusquedasBinarias::buscarDepositoMayorIgual(const ListaDobleCircular<Titular*>& titulares) {
+    system("cls");
     cout << "\n--- Buscar primer deposito mayor o igual a un monto ---\n";
     cout << " Esta funcion permite buscar el primer deposito en una cuenta bancaria que sea mayor o igual a un monto especificado.\n";
     
@@ -65,6 +66,7 @@ void MenuBusquedasBinarias::buscarDepositoMayorIgual(const ListaDobleCircular<Ti
  * @param titulares Lista de titulares del sistema
  */
 void MenuBusquedasBinarias::calcularDepositoMinimoMeta(const ListaDobleCircular<Titular*>& titulares) {
+    system("cls");
     cout << "\n--- Deposito minimo mensual para meta de ahorro ---\n";
     cout << " Esta funcion permite calcular el deposito mensual minimo necesario para alcanzar una meta de ahorro en un plazo determinado inciando con el saldo actual de la cuenta .\n";
     
@@ -127,6 +129,7 @@ void MenuBusquedasBinarias::calcularDepositoMinimoMeta(const ListaDobleCircular<
  * @param titulares Lista de titulares del sistema
  */
 void MenuBusquedasBinarias::buscarTitularPorCI(ListaDobleCircular<Titular*>& titulares) {
+    system("cls");
     cout << "\n--- Buscar primer titular por CI ---\n";
     cout << " Esta funcion permite buscar el primer titular cuyo CI sea mayor o igual al ingresado.\n";
     
@@ -146,6 +149,7 @@ void MenuBusquedasBinarias::buscarTitularPorCI(ListaDobleCircular<Titular*>& tit
  * @param titulares Lista de titulares del sistema
  */
 void MenuBusquedasBinarias::buscarTitularPorAnioNacimiento(ListaDobleCircular<Titular*>& titulares) {
+    system("cls");
     cout << "\n--- Buscar primer titular por anio de nacimiento (mayor o igual) ---\n";
     int anio;
     cout << "Ingrese anio de nacimiento a buscar: "; 
@@ -166,6 +170,7 @@ void MenuBusquedasBinarias::buscarTitularPorAnioNacimiento(ListaDobleCircular<Ti
  * @param listaSucursales Lista de sucursales disponibles
  */
 void MenuBusquedasBinarias::buscarSucursalMasCercana(const ListaSucursales& listaSucursales) {
+    system("cls");
     cout << "\n--- Buscar sucursal mas cercana ---\n";
     cout << " Esta funcion encuentra la sucursal mas cercana a las coordenadas geograficas ingresadas.\n";
     
