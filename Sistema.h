@@ -17,10 +17,9 @@
 #include "ListaSucursales.h"
 #include "BPlusTreeTitulares.h"
 #include "TablaHash.h"
+#include "GeneradorQR.h"
 #include <vector>
 #include <string>
-// Para QR real con libqrencode (comentado por ahora)
- #include <qrencode.h>
 
 class Sistema {
 private:
@@ -29,20 +28,16 @@ private:
     BPlusTreeTitulares arbolTitulares;
     ListaSucursales listaSucursales;
     TablaHash hashes;
+    GeneradorQR generadorQR;
 
     Titular* buscarTitularPorCI(const std::string& cedula);
     void actualizarContadoresSucursales();
     std::string generarHashMD5(const std::string& nombreArchivo);
     bool compararHashArchivo(const std::string& nombreArchivo);
-    // Nuevas funciones para generar el código QR y el PDF
 
 public:
     Sistema();
     ~Sistema();
-    void generarQRPDF();
-    void generarPDFConQR(const string& nombre, const string& cedula, const string& cuentasInfo, const string& qrData);
-    void generarQRReal(const string& data, bool qrMatrix[21][21]);
-    void generarQRSimple(const string& data, bool qrMatrix[21][21]);
 
     void menuPrincipal();
     void registrarTitular();
