@@ -389,9 +389,7 @@ void Sistema::busquedasBinarias() {
 
 void Sistema::menuBB() {
     system("cls");
-    BusquedasBinarias buscador;
     Menu menu;
-    ListaSucursales sucursales;
     const char* opciones[] = {
         "Buscar deposito mayor o igual a un monto",
         "Deposito minimo mensual para meta de ahorro",
@@ -405,189 +403,33 @@ void Sistema::menuBB() {
         opcion = menu.ingresarMenu("BUSQUEDAS BINARIAS", opciones, 6);
         switch(opcion) {
             case 1: {
-                // Buscar primer deposito mayor o igual a un monto
-                cout << "\n--- Buscar primer deposito mayor o igual a un monto ---\n";
-                cout << " Esta funcion permite buscar el primer deposito en una cuenta bancaria que sea mayor o igual a un monto especificado.\n";
-                string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular:");
-                Titular* titular = buscarTitularPorCI(cedula);
-                if (!titular) {
-                    cout << "Titular no encontrado.\n"; system("pause"); break;
-                }
-                string tipo = val.ingresarCadena((char*)"\nTipo de cuenta (Corriente/Ahorro):");
-                for (char& c : tipo) c = toupper(c);
-                CuentaBancaria* cuenta = nullptr;
-                string idCuenta = val.ingresarNumeros((char*)"\nIngrese ID de la cuenta:");
-                if (tipo == "CORRIENTE") {
-                    cuenta = titular->getCuentaCorriente();
-                    if (!cuenta || cuenta->getID() != idCuenta) {
-                        cout << "Cuenta corriente no encontrada o ID incorrecto.\n"; system("pause"); break;
-                    }
-                } else if (tipo == "AHORRO") {
-                    NodoDoble<CuentaBancaria*>* actual = titular->getCuentasAhorro().getCabeza();
-                    if (actual) {
-                        do {
-                            if (actual->dato->getID() == idCuenta) {
-                                cuenta = actual->dato;
-                                break;
-                            }
-                            actual = actual->siguiente;
-                        } while (actual != titular->getCuentasAhorro().getCabeza());
-                    }
-                    if (!cuenta) {
-                        cout << "Cuenta de ahorro no encontrada.\n"; system("pause"); break;
-                    }
-                } else {
-                    cout << "Tipo de cuenta no valido.\n"; system("pause"); break;
-                }
-                float monto = val.ingresarMonto((char*)"\nIngrese monto minimo a buscar:");
-                Movimiento* mov = buscador.primerDepositoMayorIgual(cuenta->getMovimientos(), monto);
-                if (mov) {
-                    cout << "\n El primer deposito mayor o igual al monto " << monto << " es :\n";
-                    mov->imprimir();
-                } else {
-                    cout << "\nNo se encontro ningun deposito mayor o igual a ese monto.";
-                }
-                system("pause");
+                menuBusquedasBinarias.buscarDepositoMayorIgual(titulares);
                 break;
             }
             case 2: {
-                cout << "\n--- Deposito minimo mensual para meta de ahorro ---\n";
-                cout << " Esta funcion permite calcular el deposito mensual minimo necesario para alcanzar una meta de ahorro en un plazo determinado inciando con el saldo actual de la cuenta .\n";
-                string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular:");
-                Titular* titular = buscarTitularPorCI(cedula);
-                if (!titular) {
-                    cout << "Titular no encontrado.\n"; system("pause"); break;
-                }
-                if (titular->getCuentasAhorro().vacia()) {
-                    cout << "El titular no tiene cuentas de ahorro.\n"; system("pause"); break;
-                }
-                string idCuenta = val.ingresarNumeros((char*)"\nIngrese ID de la cuenta de ahorro:");
-                CuentaBancaria* cuentaAhorro = nullptr;
-                NodoDoble<CuentaBancaria*>* actual = titular->getCuentasAhorro().getCabeza();
-                if (actual) {
-                    do {
-                        if (actual->dato->getID() == idCuenta) {
-                            cuentaAhorro = actual->dato;
-                            break;
-                        }
-                        actual = actual->siguiente;
-                    } while (actual != titular->getCuentasAhorro().getCabeza());
-                }
-                if (!cuentaAhorro) {
-                    cout << "Cuenta de ahorro no encontrada.\n"; system("pause"); break;
-                }
-
-                float saldoInicial = cuentaAhorro->getSaldo();
-                cout << "Saldo inicial de la cuenta: $" << saldoInicial << endl;
-                float saldoMeta;
-                int meses;
-                do {
-                    cout << "Saldo meta: "; cin >> saldoMeta;
-                    if (saldoMeta <= saldoInicial) {
-                        cout << "El saldo meta debe ser mayor al saldo actual de la cuenta. Intente de nuevo.\n";
-                    }
-                } while (saldoMeta <= saldoInicial);
-                cout << "Meses para alcanzar la meta: "; 
-                cin >> meses;
-                int deposito = buscador.depositoMinimoParaMeta(saldoInicial, saldoMeta, meses);
-                cout << "Deposito mensual minimo necesario: $" << deposito << endl;
-                system("pause");
+                menuBusquedasBinarias.calcularDepositoMinimoMeta(titulares);
                 break;
             }
             case 3: {
-                cout << "\n--- Buscar primer titular por CI ---\n";
-                cout << " Esta funcion permite buscar el primer titular cuyo CI sea mayor o igual al ingresado.\n";
-                string ci = val.ingresarCedula((char*)"Ingrese CI a buscar:");
-                Titular* t = buscador.primerTitularCIMayorIgual(titulares, ci);
-                if (t) {
-                    cout << "Primer titular con CI >= " << ci << ":\n";
-                    t->getPersona().imprimir();
-                } else {
-                    cout << "No se encontro ningun titular con ese CI o mayor.\n";
-                }
-                system("pause");
+                menuBusquedasBinarias.buscarTitularPorCI(titulares);
                 break;
             }
             case 4: {
-                // Buscar primer titular por año de nacimiento
-                cout << "\n--- Buscar primer titular por anio de nacimiento (mayor o igual) ---\n";
-                int anio;
-                cout << "Ingrese anio de nacimiento a buscar: "; cin >> anio;
-                Titular* t = buscador.primerTitularAnioNacimientoMayorIgual(titulares, anio);
-                if (t) {
-                    cout << "Primer titular con anio de nacimiento >= " << anio << ":\n";
-                    t->getPersona().imprimir();
-                } else {
-                    cout << "No se encontro ningun titular con ese anio o mayor.\n";
-                }
-                system("pause");
+                menuBusquedasBinarias.buscarTitularPorAnioNacimiento(titulares);
                 break;
-            }case 5: {cout << "\n--- Buscar sucursal mas cercana ---\n";
-    cout << " Esta funcion encuentra la sucursal mas cercana a las coordenadas geograficas ingresadas.\n";
-    float latUsuario = val.ingresarCoordenada((char*)"\nIngrese latitud:", true);
-    float lonUsuario = val.ingresarCoordenada((char*)"\nIngrese longitud:", false);
-    Sucursal* sucursal = buscador.sucursalMasCercana(listaSucursales.getCabeza(), latUsuario, lonUsuario);
-    if (sucursal) {
-        cout << "\nSucursal mas cercana:\n";
-        sucursal->imprimir();
-        
-        // Crear cita para el siguiente día laborable
-        FechaHora fechaActual;
-        fechaActual.actualizarFechaHora(); // Obtener fecha y hora actual
-        Cita cita(sucursal, fechaActual);
-        cita.mostrar();
-        
-    } else {
-        cout << "No se encontraron sucursales.\n";
-    }
-    system("pause");
-    break;
-                }  
-            /*case 6: {
-                cout << "\n--- Calcular intervalo maximo entre citas ---\n";
-                            cout << " Esta funcion calcula el maximo intervalo de tiempo (en minutos) entre citas consecutivas para programar un numero dado de clientes.\n";
-                            int nClientes;
-                            cout << "Ingrese numero de clientes a programar: ";
-                            cin >> nClientes;
-                            if (cin.fail() || nClientes < 2 || nClientes > 100000) {
-                                cin.clear();
-                                cin.ignore(10000, '\n');
-                                cout << "Numero de clientes invalido. Debe estar entre 2 y 100000.\n";
-                                system("pause");
-                                break;
-                            }
-                            int duracionCita;
-                            cout << "Ingrese duracion de cada cita (en minutos, minimo 1): ";
-                            cin >> duracionCita;
-                            if (cin.fail() || duracionCita < 1) {
-                                cin.clear();
-                                cin.ignore(10000, '\n');
-                                cout << "Duracion de cita invalida. Debe ser al menos 1 minuto.\n";
-                                system("pause");
-                                break;
-                            }
-                            if (!listaSucursales.getCabeza()) {
-                                cout << "No hay sucursales disponibles.\n";
-                                system("pause");
-                                break;
-                            }
-                            int maxD = buscador.maximoIntervaloCitas(listaSucursales.getCabeza(), nClientes, duracionCita);
-                            if (maxD == 0) {
-                                cout << "No es posible programar las citas con los datos proporcionados.\n";
-                            } else {
-                                cout << "El maximo intervalo entre citas es: " << maxD << " minutos.\n";
-                            }
-                            system("pause");
-                            break;
-}
-           */ case 6:
+            }
+            case 5: {
+                menuBusquedasBinarias.buscarSucursalMasCercana(listaSucursales);
+                break;
+            }
+            case 6:
                 cout << "\nRegresando al menu principal...\n";
                 break;
             default:
                 cout << "\nOpcion invalida.\n"; system("pause"); break;
         }
-        }while(opcion != 6);
-    }
+    } while(opcion != 6);
+}
     /**
          * @brief Guarda los titulares y sus cuentas bancarias en un archivo de texto.
          * 

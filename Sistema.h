@@ -23,6 +23,7 @@
 #include "GestorArchivos.h"
 #include "GestorArchivosBinarios.h"
 #include "GestorBusquedas.h"
+#include "MenuBusquedasBinarias.h"
 #include <vector>
 #include <string>
 
@@ -39,6 +40,7 @@ private:
     GestorArchivos gestorArchivos;
     GestorArchivosBinarios gestorArchivosBinarios;
     GestorBusquedas gestorBusquedas;
+    MenuBusquedasBinarias menuBusquedasBinarias;
 
     Titular* buscarTitularPorCI(const std::string& cedula);
     void actualizarContadoresSucursales();
