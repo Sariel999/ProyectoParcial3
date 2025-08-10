@@ -65,6 +65,8 @@ public:
     void busquedasBinarias();
     void menuBB();
     void guardarTitularesEnTxt();
+    void verificarIntegridadArchivo();
+    void mostrarTablaHash();
 
 };
 

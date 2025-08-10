@@ -6,7 +6,7 @@ using namespace std;
 
 class Validaciones {
 public:
-    int ingresarEntero(char msj[50]);
+    int ingresarEntero(const char* mensaje);
     float ingresarFlotante(char msj[50]);
     string ingresarCadena(char msj[50]);
     char ingresarCaracter(char msj[50]);

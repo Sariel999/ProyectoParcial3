@@ -16,6 +16,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
+#include <vector>
 
 using namespace std;
 
@@ -185,7 +186,6 @@ void GestorArchivos::generarPDFTitulares() {
     system("cls");
     cout << "\n--- GENERAR PDF COMPLETO DE TITULARES ---\n" << endl;
 
-    // Verificar que existe el archivo de titulares
     ifstream archivo("titulares.txt");
     if (!archivo) {
         cout << "\nNo se pudo abrir el archivo 'titulares.txt'." << endl;
@@ -194,7 +194,6 @@ void GestorArchivos::generarPDFTitulares() {
         return;
     }
 
-    // Archivo PDF de salida
     string outputFile = "titulares_completo.pdf";
     ofstream pdf(outputFile, ios::binary);
     if (!pdf) {
@@ -206,78 +205,36 @@ void GestorArchivos::generarPDFTitulares() {
 
     cout << "Generando PDF con informacion completa de titulares, cuentas y movimientos..." << endl;
 
-    // Escribir cabecera del PDF
-    pdf << "%PDF-1.4\n";
+    // Parámetros de página
+    const float pageTop = 800;
+    const float pageBottom = 50;
+    const float lineSpacing = 12;
 
-    // Objeto 1: Catálogo
-    pdf << "1 0 obj\n"
-        << "<< /Type /Catalog /Pages 2 0 R >>\n"
-        << "endobj\n";
+    std::vector<std::string> paginas; // Cada página PDF (solo el contenido del stream)
+    std::stringstream paginaActual;
 
-    // Objeto 2: Páginas
-    pdf << "2 0 obj\n"
-        << "<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n"
-        << "endobj\n";
+    // Título principal (lo agregamos en cada página)
+    auto agregarTitulo = [&paginaActual]() {
+        paginaActual << "BT\n";
+        paginaActual << "/F2 16 Tf\n1 0 0 1 50 800 Tm\n(SISTEMA BANCARIO MICHIBANK) Tj\n";
+        paginaActual << "0 -20 Td\n";
+        paginaActual << "/F2 14 Tf\n(Listado Completo de Titulares, Cuentas y Movimientos) Tj\n";
+        paginaActual << "0 -10 Td\n";
+        paginaActual << "/F1 10 Tf\n(Fecha de generacion: " << __DATE__ << " " << __TIME__ << ") Tj\n";
+    };
 
-    // Objeto 3: Página
-    pdf << "3 0 obj\n"
-        << "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /MediaBox [0 0 595 842] /Contents 6 0 R >>\n"
-        << "endobj\n";
+    agregarTitulo();
+    float yPos = pageTop - 42;
 
-    // Objeto 4: Fuente normal
-    pdf << "4 0 obj\n"
-        << "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n"
-        << "endobj\n";
-
-    // Objeto 5: Fuente negrita
-    pdf << "5 0 obj\n"
-        << "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\n"
-        << "endobj\n";
-
-    // Objeto 6: Contenido
-    stringstream contenido;
-    contenido << "6 0 obj\n"
-              << "<< /Length ";
-    
-    // Placeholder para la longitud
-    size_t longitudPos = contenido.tellp();
-    contenido << "XXXX >>\n"
-              << "stream\n"
-              << "BT\n";
-
-    // Título principal
-    contenido << "/F2 16 Tf\n"  // Fuente negrita, tamaño 16
-              << "1 0 0 1 50 800 Tm\n"  // Posición inicial
-              << "(SISTEMA BANCARIO MICHIBANK) Tj\n"
-              << "0 -20 Td\n"
-              << "/F2 14 Tf\n"
-              << "(Listado Completo de Titulares, Cuentas y Movimientos) Tj\n"
-              << "0 -10 Td\n"
-              << "/F1 10 Tf\n"
-              << "(Fecha de generacion: " << __DATE__ << " " << __TIME__ << ") Tj\n";
-
-    float yPos = 750; // Posición Y actual
-    const float lineSpacing = 12; // Espaciado entre líneas
-    const float pageBottom = 50; // Margen inferior
-    const float pageTop = 800; // Margen superior
-
-    // Leer y procesar el archivo línea por línea
     string linea;
-    bool esTitulo = false;
-    bool esCuenta = false;
-    bool esMovimiento = false;
-
     while (getline(archivo, linea)) {
-        // Verificar si necesitamos una nueva página
         if (yPos < pageBottom) {
-            contenido << "ET\n"
-                      << "endstream\n"
-                      << "endobj\n";
-            // En una implementación completa, aquí crearías una nueva página
-            yPos = pageTop; // Reiniciar posición
-            contenido << "BT\n"
-                      << "/F1 10 Tf\n"
-                      << "1 0 0 1 50 " << yPos << " Tm\n";
+            paginaActual << "ET\n";
+            paginas.push_back(paginaActual.str());
+            paginaActual.str("");
+            paginaActual.clear();
+            agregarTitulo();
+            yPos = pageTop - 42;
         }
 
         // Escapar caracteres especiales para PDF
@@ -291,101 +248,120 @@ void GestorArchivos::generarPDFTitulares() {
 
         // Determinar el tipo de línea y aplicar formato apropiado
         if (escapedLine.find("TITULAR #") != string::npos) {
-            // Título de titular
-            contenido << "0 -" << lineSpacing * 2 << " Td\n"
-                      << "/F2 12 Tf\n"  // Negrita
-                      << "(" << escapedLine << ") Tj\n";
+            paginaActual << "0 -" << lineSpacing * 2 << " Td\n"
+                         << "/F2 12 Tf\n"
+                         << "(" << escapedLine << ") Tj\n";
             yPos -= lineSpacing * 2;
-        } else if (escapedLine.find("CUENTA CORRIENTE") != string::npos || 
+        } else if (escapedLine.find("CUENTA CORRIENTE") != string::npos ||
                    escapedLine.find("CUENTA DE AHORRO") != string::npos) {
-            // Títulos de cuentas
-            contenido << "0 -" << lineSpacing * 1.5 << " Td\n"
-                      << "/F2 10 Tf\n"  // Negrita, tamaño menor
-                      << "(" << escapedLine << ") Tj\n";
+            paginaActual << "0 -" << lineSpacing * 1.5 << " Td\n"
+                         << "/F2 10 Tf\n"
+                         << "(" << escapedLine << ") Tj\n";
             yPos -= lineSpacing * 1.5;
         } else if (escapedLine.find("MOVIMIENTOS:") != string::npos) {
-            // Título de movimientos
-            contenido << "0 -" << lineSpacing << " Td\n"
-                      << "/F2 9 Tf\n"   // Negrita, tamaño pequeño
-                      << "(" << escapedLine << ") Tj\n";
+            paginaActual << "0 -" << lineSpacing << " Td\n"
+                         << "/F2 9 Tf\n"
+                         << "(" << escapedLine << ") Tj\n";
             yPos -= lineSpacing;
         } else if (escapedLine.find("  ") == 0 && escapedLine.find(". ID:") != string::npos) {
-            // Movimientos individuales (líneas que empiezan con espacios)
-            contenido << "0 -" << lineSpacing * 0.8 << " Td\n"
-                      << "/F1 8 Tf\n"   // Fuente normal, pequeña
-                      << "(" << escapedLine << ") Tj\n";
+            paginaActual << "0 -" << lineSpacing * 0.8 << " Td\n"
+                         << "/F1 8 Tf\n"
+                         << "(" << escapedLine << ") Tj\n";
             yPos -= lineSpacing * 0.8;
         } else if (!escapedLine.empty() && escapedLine.find("===") == string::npos) {
-            // Líneas normales de información
-            contenido << "0 -" << lineSpacing << " Td\n"
-                      << "/F1 9 Tf\n"   // Fuente normal
-                      << "(" << escapedLine << ") Tj\n";
+            paginaActual << "0 -" << lineSpacing << " Td\n"
+                         << "/F1 9 Tf\n"
+                         << "(" << escapedLine << ") Tj\n";
             yPos -= lineSpacing;
         } else if (escapedLine.find("===") != string::npos) {
-            // Líneas separadoras - saltar sin imprimir
-            contenido << "0 -" << lineSpacing * 0.5 << " Td\n";
+            paginaActual << "0 -" << lineSpacing * 0.5 << " Td\n";
             yPos -= lineSpacing * 0.5;
         }
     }
 
-    contenido << "ET\n"
-              << "endstream\n"
-              << "endobj\n";
+    // Agregar la última página si tiene contenido
+    if (paginaActual.str().size() > 0) {
+        paginaActual << "ET\n";
+        paginas.push_back(paginaActual.str());
+    }
 
-    // Calcular la longitud real del contenido
-    string contenidoStr = contenido.str();
-    string streamContent = contenidoStr.substr(contenidoStr.find("stream\n") + 7);
-    streamContent = streamContent.substr(0, streamContent.find("\nendstream"));
-    size_t longitudReal = streamContent.length();
+    archivo.close();
 
-    // Reemplazar el placeholder con la longitud real
-    string longitudStr = to_string(longitudReal);
-    while (longitudStr.length() < 4) longitudStr = " " + longitudStr;
-    contenidoStr.replace(contenidoStr.find("XXXX"), 4, longitudStr);
+    // Calcular el número total de objetos
+    int totalObjs = 4 + static_cast<int>(paginas.size()) * 2;
 
-    pdf << contenidoStr;
+    // Vector para almacenar offsets de objetos (índice 0 no usado)
+    std::vector<long long> offsets(totalObjs + 1, 0);
 
-    // Tabla de referencias cruzadas
-    pdf << "xref\n"
-        << "0 7\n"
-        << "0000000000 65535 f \n";
+    // Escribir cabecera
+    pdf << "%PDF-1.4\n";
 
-    // Calcular offsets (simplificado)
-    size_t offset = 9; // Longitud de "%PDF-1.4\n"
-    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
-    
-    offset += string("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n").size();
-    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
-    
-    offset += string("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n").size();
-    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
-    
-    offset += string("3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /MediaBox [0 0 595 842] /Contents 6 0 R >>\nendobj\n").size();
-    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
-    
-    offset += string("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n").size();
-    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
-    
-    offset += string("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n").size();
-    pdf << setfill('0') << setw(10) << offset << " 00000 n \n";
+    // Objeto 1: Catalog
+    offsets[1] = static_cast<long long>(pdf.tellp());
+    pdf << "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+
+    // Objeto 2: Pages (con Kids corregido)
+    offsets[2] = static_cast<long long>(pdf.tellp());
+    pdf << "2 0 obj\n<< /Type /Pages /Kids [";
+    int pageObjNum = 6; // Primer objeto de página (contenido 5, página 6; contenido 7, página 8, etc.)
+    for (size_t i = 0; i < paginas.size(); ++i) {
+        pdf << pageObjNum << " 0 R ";
+        pageObjNum += 2;
+    }
+    pdf << "] /Count " << paginas.size() << " >>\nendobj\n";
+
+    // Objeto 3: Font Helvetica
+    offsets[3] = static_cast<long long>(pdf.tellp());
+    pdf << "3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+
+    // Objeto 4: Font Helvetica-Bold
+    offsets[4] = static_cast<long long>(pdf.tellp());
+    pdf << "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+
+    // Escribir objetos de contenido y página para cada página
+    int objNum = 5;
+    for (size_t i = 0; i < paginas.size(); ++i) {
+        std::string streamContent = paginas[i];
+        size_t longitudReal = streamContent.length();
+
+        // Objeto de contenido
+        offsets[objNum] = static_cast<long long>(pdf.tellp());
+        pdf << objNum << " 0 obj\n"
+            << "<< /Length " << longitudReal << " >>\n"
+            << "stream\n"
+            << streamContent
+            << "endstream\nendobj\n";
+
+        // Objeto de página
+        offsets[objNum + 1] = static_cast<long long>(pdf.tellp());
+        pdf << (objNum + 1) << " 0 obj\n"
+            << "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> "
+            << "/MediaBox [0 0 595 842] /Contents " << objNum << " 0 R >>\nendobj\n";
+
+        objNum += 2;
+    }
+
+    // Escribir tabla de referencias cruzadas
+    long long xref_offset = static_cast<long long>(pdf.tellp());
+    pdf << "xref\n0 " << (totalObjs + 1) << "\n";
+    pdf << "0000000000 65535 f \n";
+    for (int i = 1; i <= totalObjs; ++i) {
+        pdf << std::setw(10) << std::setfill('0') << offsets[i] << " 00000 n \n";
+    }
 
     // Trailer
-    pdf << "trailer\n"
-        << "<< /Size 7 /Root 1 0 R >>\n"
-        << "startxref\n"
-        << offset << "\n"
-        << "%%EOF\n";
+    pdf << "trailer\n<< /Size " << (totalObjs + 1) << " /Root 1 0 R >>\n";
+    pdf << "startxref\n" << xref_offset << "\n%%EOF\n";
 
     pdf.close();
-    archivo.close();
-    
+
     cout << "\nPDF completo generado exitosamente: " << outputFile << endl;
     cout << "El archivo contiene informacion detallada de:" << endl;
     cout << "- Datos personales de titulares" << endl;
     cout << "- Informacion de cuentas corrientes y de ahorro" << endl;
     cout << "- Historial completo de movimientos por cuenta" << endl;
     cout << "- Fechas y montos de todas las transacciones\n" << endl;
-    
+
     system("pause");
 }
 

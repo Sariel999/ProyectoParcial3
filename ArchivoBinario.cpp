@@ -227,7 +227,7 @@ void ArchivoBinario::cargar(ListaDobleCircular<Titular*>& titulares, const std::
                 m->setIDMovimiento(idMov);
                 m->setFechaMov(fechaMov);
                 m->setHora(hora);
-                cc->agregarMovimiento(m);
+                cc->getMovimientos().insertar(m); 
             }
             t->setCuentaCorriente(cc);
         }
@@ -270,7 +270,7 @@ void ArchivoBinario::cargar(ListaDobleCircular<Titular*>& titulares, const std::
                 m->setIDMovimiento(idMov);
                 m->setFechaMov(fechaMov);
                 m->setHora(hora);
-                ahorro->agregarMovimiento(m);
+                ahorro->getMovimientos().insertar(m);
             }
             t->agregarCuentaAhorro(ahorro);
         }
@@ -355,7 +355,7 @@ bool ArchivoBinario::cargarBackup(ListaDobleCircular<Titular*>& titulares, const
                 m->setIDMovimiento(idMov);
                 m->setFechaMov(fechaMov);
                 m->setHora(hora);
-                cc->agregarMovimiento(m);
+                cc->getMovimientos().insertar(m);
             }
             t->setCuentaCorriente(cc);
         }
@@ -398,7 +398,7 @@ bool ArchivoBinario::cargarBackup(ListaDobleCircular<Titular*>& titulares, const
                 m->setIDMovimiento(idMov);
                 m->setFechaMov(fechaMov);
                 m->setHora(hora);
-                ahorro->agregarMovimiento(m);
+                ahorro->getMovimientos().insertar(m);
             }
             t->agregarCuentaAhorro(ahorro);
         }

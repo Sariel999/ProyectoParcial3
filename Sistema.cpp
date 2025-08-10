@@ -83,36 +83,20 @@ void Sistema::menuPrincipal() {
             case 9: menuSecundario(); break;
             case 10: menuArbol(); break;
             case 11: guardarTitularesEnTxt(); break;
-            case 12: {
-                system("cls");
-                cout << "\n--- VERIFICAR INTEGRIDAD DE ARCHIVO TXT ---" << endl;
-                cout << "Esto compara el hash MD5 actual del archivo con el hash almacenado en la tabla hash.\n";
-                string nombreArchivo = val.ingresarNombreArchivo((char*)"Ingrese el nombre del archivo TXT (ejemplo: titulares.txt): ");
-                if (gestorArchivos.compararHashArchivo(nombreArchivo)) {
-                    cout << "\nEl archivo no ha sido modificado (los hashes coinciden).\n" << endl;
-                } else {
-                    cout << "\nEl archivo ha sido modificado o no se encontro el hash en la tabla hash.\n" << endl;
-                }
-                system("pause");
-                break;
-            }
-            case 13: {
-                system("cls");
-                cout << "\n--- MOSTRAR TABLA HASH ---" << endl;
-                hashes.mostrarContenido();
-                system("pause");
-                break;
-            }
+            case 12: verificarIntegridadArchivo(); break;
+            case 13: mostrarTablaHash();  break;
             case 14: mostrarAyuda(); break;
             case 15: generadorQR.generarQRPDF(titulares); break;
             case 16: generarPDFTitulares(); break; // Nueva opcion
-            case 17: {Backups backup;
+            case 17: {
+                Backups backup;
                 backup.crearBackup(titulares);
                 cout << "\nSaliendo...\n" << endl; break;}
             default: cout << "\nOpcion invalida." << endl; system("pause"); break;
         }
     } while(opcion != 17);
 }
+
 /**
  * @brief Muestra el menú del árbol B+ y permite al usuario realizar operaciones sobre él.
  * 
@@ -130,26 +114,35 @@ void Sistema::menuArbol(){
         opcion = menu.ingresarMenu("Arbol B+", opciones, 4);
         switch(opcion) {
             case 1:{
-                string ciBuscar = val.ingresarCedula((char*)"\nIngrese el CI del titular para buscar: ");
-                std::cout << "\nBuscando en el Arbol B+...\n";
-                Titular* titularEncontrado = arbolTitulares.buscar(ciBuscar);
-                std::cout << "\nResultado de la busqueda:\n";
-                if (titularEncontrado) {
-                    std::cout << "\nTitular encontrado:\n";
-                    std::cout << "Nombre: " << titularEncontrado->getPersona().getNombre() << " " 
-                              << titularEncontrado->getPersona().getApellido() << std::endl;
-                    std::cout << "Numero de cuenta corriente: "
-                              << (titularEncontrado->getCuentaCorriente() ? titularEncontrado->getCuentaCorriente()->getID() : "No tiene cuenta corriente") << std::endl;
-                    std::cout << "Cuentas de ahorro: ";
-                    if (titularEncontrado->getCuentasAhorro().vacia()) {
-                        std::cout << "No tiene cuentas de ahorro" << std::endl;
-                    } else {
-                        std::cout << std::endl;
-                        titularEncontrado->mostrarCuentasAhorro();
+                    system("cls");
+                    std::cout << "\n" << std::endl;
+                    std::cout << "\n--- BUSCAR EN ARBOL B+ ---" << std::endl;
+                    std::string ci = val.ingresarCedula((char*)"\nIngrese CI del titular a buscar: ");
+                    Titular* titularEncontrado = arbolTitulares.buscar(ci); // arbolTitulares is your B+ tree
+                    if (!titularEncontrado) {
+                        std::cout << "\nTitular no encontrado." << std::endl;
+                        break;
                     }
-                } else {
-                    std::cout << "\nTitular no encontrado." << std::endl;
-                }
+                    // Mostrar nombre y apellido
+                    std::cout << "\nTitular encontrado:\n";
+                    std::cout << "\nNombre: " << titularEncontrado->getPersona().getNombre() << " "
+                            << titularEncontrado->getPersona().getApellido() << std::endl;
+                    // Mostrar cuentas
+                    if (titularEncontrado->getCuentaCorriente()) {
+                        std::cout << "\nCuenta Corriente: " << titularEncontrado->getCuentaCorriente()->getID() << std::endl;
+                    }
+                    if (!titularEncontrado->getCuentasAhorro().vacia()) {
+                        std::cout << "\nCuentas de Ahorro:\n";
+                        NodoDoble<CuentaBancaria*>* actual = titularEncontrado->getCuentasAhorro().getCabeza();
+                        if (actual) {
+                            do {
+                                std::cout << "  - " << actual->dato->getID() << std::endl;
+                                actual = actual->siguiente;
+                            } while (actual != titularEncontrado->getCuentasAhorro().getCabeza());
+                        }
+                    } else {
+                        std::cout << "No tiene cuentas de ahorro." << std::endl;
+                    }
                 std::cout.flush(); // Forzar la salida
                 system("pause");
                 break;
@@ -204,6 +197,27 @@ void Sistema::menuArbol(){
         }
     } while(opcion != 4);
 }
+
+void Sistema::verificarIntegridadArchivo() {
+    system("cls");
+    cout << "\n--- VERIFICAR INTEGRIDAD DE ARCHIVO TXT ---" << endl;
+    cout << "Esto compara el hash MD5 actual del archivo con el hash almacenado en la tabla hash.\n";
+    string nombreArchivo = val.ingresarNombreArchivo((char*)"Ingrese el nombre del archivo TXT (ejemplo: titulares.txt): ");
+    if (gestorArchivos.compararHashArchivo(nombreArchivo)) {
+        cout << "\nEl archivo no ha sido modificado (los hashes coinciden).\n" << endl;
+    } else {
+        cout << "\nEl archivo ha sido modificado o no se encontro el hash en la tabla hash.\n" << endl;
+    }
+    system("pause");
+}
+
+void Sistema::mostrarTablaHash() {
+    system("cls");
+    cout << "\n--- TABLA HASH ---" << endl;
+    hashes.mostrarContenido();
+    system("pause");
+}
+
 /**
  * @brief Muestra el menú secundario del sistema bancario y permite al usuario seleccionar opciones relacionadas con archivos binarios.
  * 

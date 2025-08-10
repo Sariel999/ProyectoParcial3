@@ -38,12 +38,11 @@ Titular* OperacionesBancarias::buscarTitularPorCI(const ListaDobleCircular<Titul
         return nullptr;
     }
     
-    do {
-        if (actual->dato->getPersona().getCI() == ci) {
-            return actual->dato;
+    for (Titular* titular : titulares) {
+        if (titular->getPersona().getCI() == ci) {
+            return titular;
         }
-        actual = actual->siguiente;
-    } while (actual != titulares.getCabeza());
+    }
     
     return nullptr;
 }
@@ -72,17 +71,16 @@ CuentaBancaria* OperacionesBancarias::seleccionarCuenta(Titular* titular) {
     
     // Mostrar cuentas de ahorro si existen
     if (tieneCuentasAhorro) {
-        NodoDoble<CuentaBancaria*>* actual = titular->getCuentasAhorro().getCabeza();
-        do {
-            cout << "- Cuenta de Ahorro - ID: " << actual->dato->getID() << endl;
-            actual = actual->siguiente;
-        } while (actual != titular->getCuentasAhorro().getCabeza());
+        for (CuentaBancaria* cuenta : titular->getCuentasAhorro()) {
+            cout << "- Cuenta de Ahorro - ID: " << cuenta->getID() << endl;
+        }
     }
     
     // Solicitar numero de cuenta con validacion
     string numeroCuenta;
     bool cuentaValida = false;
-    
+    /* No se puede cambia a for-each porque no recorre una estructura de datos
+    solo esta repitiendo un proceso para validar el numero de cuenta*/
     do {
         numeroCuenta = val.ingresarNumeros((char*)"Ingrese numero de cuenta: ");
         
@@ -108,13 +106,11 @@ CuentaBancaria* OperacionesBancarias::seleccionarCuenta(Titular* titular) {
     
     // Buscar en cuentas de ahorro
     if (tieneCuentasAhorro) {
-        NodoDoble<CuentaBancaria*>* actual = titular->getCuentasAhorro().getCabeza();
-        do {
-            if (actual->dato->getID() == numeroCuenta) {
-                return actual->dato;
+        for (CuentaBancaria* cuenta : titular->getCuentasAhorro()) {
+            if (cuenta->getID() == numeroCuenta) {
+                return cuenta;
             }
-            actual = actual->siguiente;
-        } while (actual != titular->getCuentasAhorro().getCabeza());
+        }
     }
     
     cout << "\nNumero de cuenta no encontrado." << endl;
@@ -128,6 +124,7 @@ CuentaBancaria* OperacionesBancarias::seleccionarCuenta(Titular* titular) {
  */
 void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titulares) {
     if (titulares.vacia()) {
+        system("cls");
         cout << "\nNo hay titulares registrados.\n" << endl;
         system("pause");
         return;
@@ -149,7 +146,7 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
         return;
     }
     
-    float monto = val.ingresarFlotante((char*)"\nIngrese el monto a depositar: ");
+    float monto = val.ingresarMonto((char*)"\nIngrese el monto a depositar: ");
     if (monto <= 0) {
         cout << "\nEl monto debe ser mayor a 0." << endl;
         system("pause");
@@ -158,6 +155,11 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
     
     if (monto < 10.0) {
         cout << "\nEl monto minimo de deposito es $10." << endl;
+        system("pause");
+        return;
+    }
+    if (monto > 10000.0) {
+        cout << "\nEl monto maximo de deposito es $10,000." << endl;
         system("pause");
         return;
     }
@@ -186,6 +188,7 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
  */
 void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulares) {
     if (titulares.vacia()) {
+        system("cls");
         cout << "\nNo hay titulares registrados.\n" << endl;
         system("pause");
         return;
@@ -208,7 +211,7 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
     }
     
     cout << "\nSaldo actual: $" << cuenta->getSaldo() << endl;
-    float monto = val.ingresarFlotante((char*)"\nIngrese el monto a retirar: ");
+    float monto = val.ingresarMonto((char*)"\nIngrese el monto a retirar: ");
     
     if (monto <= 0) {
         cout << "\nEl monto debe ser mayor a 0." << endl;

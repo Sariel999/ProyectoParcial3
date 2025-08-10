@@ -73,6 +73,9 @@ void Movimiento::setTipo(bool newTipo) {
     tipo = newTipo;
 }
 
+/*el for-each no aplica porque no hay un contenedor sobre el cual iterar, y el bucle for actual
+es la forma más clara y directa de generar los 10 dígitos aleatorios, en si el for se usa para
+controlar un número fijo de iteraciones (10) y no para recorrer elementos de una estructura de datos*/
 void Movimiento::generarID(bool esDeposito) {
     IDMovimiento = "";
     for (int i = 0; i < 10; ++i) {
@@ -82,6 +85,7 @@ void Movimiento::generarID(bool esDeposito) {
 
 void Movimiento::imprimir(){
     std::cout << "ID: " << IDMovimiento << "\n";
+    std::cout << "Tipo: " << (tipo ? "Deposito" : "Retiro") << "\n";
     std::cout << "Monto: $" << monto << "\n";
     std::cout << "Fecha: " << fechaMov.getDia() << "/"
               << fechaMov.getMes() << "/"

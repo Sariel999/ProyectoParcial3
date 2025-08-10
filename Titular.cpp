@@ -51,7 +51,17 @@ void Titular::agregarCuentaAhorro(CuentaBancaria* cuenta) {
 }
 
 void Titular::mostrarCuentasAhorro() const {
-    cuentasAhorro.imprimirAdelante();
+    NodoDoble<CuentaBancaria*>* actual = cuentasAhorro.getCabeza();
+    if (!actual) {
+        std::cout << "No tiene cuentas de ahorro" << std::endl;
+        return;
+    }
+    do {
+        if (actual->dato) {
+            actual->dato->imprimir();
+        }
+        actual = actual->siguiente;
+    } while (actual != cuentasAhorro.getCabeza());
 }
 
 ListaDobleCircular<CuentaBancaria*>& Titular::getCuentasAhorro() {

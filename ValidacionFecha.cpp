@@ -70,7 +70,7 @@ bool ValidacionFecha::esMayorDeEdad(int dia, int mes, int anio) {
 
 bool ValidacionFecha::ingresarFecha(std::string& fecha, int& dia, int& mes, int& anio) {
     do {
-        std::cout << "\nIngrese la fecha (DD/MM/AAAA): ";
+        std::cout << "\nFormato de la fecha (DD/MM/AAAA): ";
         char buffer[11];
         int i = 0;
         while (i < 10) {

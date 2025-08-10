@@ -21,6 +21,35 @@ public:
     NodoDoble<T>* getCabeza() const;
     void eliminar(NodoDoble<T>* nodo);
     ListaDobleCircular<T> getCuentasAhorro() const;
+    class Iterador {
+    private:
+        NodoDoble<T>* actual;
+        NodoDoble<T>* cabeza; // Para detectar el final en una lista circular
+
+    public:
+        Iterador(NodoDoble<T>* nodo, NodoDoble<T>* cabeza) : actual(nodo), cabeza(cabeza) {}
+
+        // Operador de desreferencia
+        T& operator*() const { return actual->dato; }
+
+        // Operador de incremento (avanzar al siguiente nodo)
+        Iterador& operator++() {
+            if (actual) {
+                actual = actual->siguiente;
+                if (actual == cabeza) actual = nullptr; // Fin de la iteración
+            }
+            return *this;
+        }
+
+        // Comparación de igualdad
+        bool operator!=(const Iterador& otro) const {
+            return actual != otro.actual;
+        }
+    };
+
+    // Métodos para soportar for-each
+    Iterador begin() const { return Iterador(cabeza, cabeza); }
+    Iterador end() const { return Iterador(nullptr, cabeza); }
 };
 
 template <typename T>

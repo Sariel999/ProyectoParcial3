@@ -52,6 +52,8 @@ void GestorTitulares::registrarTitular(ListaDobleCircular<Titular*>& titulares, 
     int dia, mes, anio;
     bool fechaValida = false;
     do {
+        system("cls");
+        cout << "\nIngrese su fecha de nacimiento." << endl;
         valFecha.ingresarFecha(fechaStr, dia, mes, anio);
         if (!valFecha.valoresValidos(dia, mes, anio)) {
             cout << "\nFecha invalida. Intente de nuevo." << endl;

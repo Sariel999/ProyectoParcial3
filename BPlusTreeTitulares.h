@@ -13,31 +13,35 @@
 
 #include "NodoBPlus.h"
 #include "Titular.h"
+#include "ListaDobleCircular.h"
+#include <SFML/Graphics.hpp>
 
 class BPlusTreeTitulares {
+private:
     NodoBPlus* raiz;
-    int grado; // Grado del árbol (máximo de claves por nodo)
+    int grado;
+
+    void liberarNodo(NodoBPlus* nodo);
+    void insertarEnNodo(NodoBPlus* nodo, const std::string& ci, Titular* titular, 
+                       NodoBPlus*& nuevoHijo, std::string& nuevaClave);
+    Titular* buscarEnNodo(NodoBPlus* nodo, const std::string& ci) const;
+    void eliminarEnNodo(NodoBPlus* nodo, const std::string& ci, NodoBPlus* padre, int indicePadre);
+    void manejarUnderflow(NodoBPlus* nodo, NodoBPlus* padre, int indice);
+    void imprimirNodo(NodoBPlus* nodo, int nivel, bool esRaiz = false) const;
+    void imprimirNodoArbolBPlus(NodoBPlus* nodo, int nivel) const;
+
 public:
-    BPlusTreeTitulares(int grado = 3);
+    BPlusTreeTitulares(int grado_);
+    BPlusTreeTitulares();
     ~BPlusTreeTitulares();
 
     void insertar(const std::string& ci, Titular* titular);
     Titular* buscar(const std::string& ci) const;
-    void imprimir() const;
-    void construirDesdeLista(NodoDoble<Titular*>* cabeza);
-    void manejarUnderflow(NodoBPlus* nodo, NodoBPlus* padre, int indice);
-    void eliminarEnNodo(NodoBPlus* nodo, const std::string& ci, NodoBPlus* padre, int indicePadre);
     void eliminar(const std::string& ci);
-    NodoBPlus* getRaiz() const { return raiz; }
+    void imprimir() const;
     void imprimirArbolBPlus() const;
-    void imprimirNodoArbolBPlus(NodoBPlus* nodo, int nivel) const;
+    void construirDesdeLista(NodoDoble<Titular*>* cabeza);
     void graficarArbol() const;
-
-private:
-    void insertarEnNodo(NodoBPlus* nodo, const std::string& ci, Titular* titular, NodoBPlus*& nuevoHijo, std::string& nuevaClave);
-    Titular* buscarEnNodo(NodoBPlus* nodo, const std::string& ci) const;
-    void imprimirNodo(NodoBPlus* nodo, int nivel,bool esRaiz = false) const;
-    void liberarNodo(NodoBPlus* nodo);
 };
 
 #endif

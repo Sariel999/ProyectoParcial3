@@ -11,8 +11,10 @@
 #include "BPlusTreeTitulares.h"
 #include <iostream>
 #include <SFML/Graphics.hpp>
-#include <vector>
+#include <cmath>
 #include <queue>
+#include <cstring> 
+
 BPlusTreeTitulares::BPlusTreeTitulares(int grado_) : raiz(nullptr), grado(grado_) {}
 
 BPlusTreeTitulares::~BPlusTreeTitulares() {
@@ -22,99 +24,104 @@ BPlusTreeTitulares::~BPlusTreeTitulares() {
 void BPlusTreeTitulares::liberarNodo(NodoBPlus* nodo) {
     if (!nodo) return;
     if (!nodo->esHoja) {
-        for (int i = 0; i <= nodo->numClaves; ++i)
-            liberarNodo(nodo->hijos[i]);
+        for (int i = 0; i <= nodo->numClaves; ++i) {
+            liberarNodo(*(nodo->hijos + i));
+        }
     }
     delete nodo;
 }
 
 void BPlusTreeTitulares::insertar(const std::string& ci, Titular* titular) {
-
     if (!raiz) {
         raiz = new NodoBPlus(grado, true);
-        raiz->claves[0] = ci;
-        raiz->datos[0] = titular;
+        *(raiz->claves) = ci;
+        *(raiz->datos) = titular;
         raiz->numClaves = 1;
         return;
     }
     NodoBPlus* nuevoHijo = nullptr;
     std::string nuevaClave;
     insertarEnNodo(raiz, ci, titular, nuevoHijo, nuevaClave);
+    
     if (nuevoHijo) {
         NodoBPlus* nuevaRaiz = new NodoBPlus(grado, false);
-        nuevaRaiz->claves[0] = nuevaClave;
-        nuevaRaiz->hijos[0] = raiz;
-        nuevaRaiz->hijos[1] = nuevoHijo;
+        *(nuevaRaiz->claves) = nuevaClave;
+        *(nuevaRaiz->hijos) = raiz;
+        *(nuevaRaiz->hijos + 1) = nuevoHijo;
         nuevaRaiz->numClaves = 1;
         raiz = nuevaRaiz;
     }
-     // Imprimir después de cada inserción para verificar
 }
 
-void BPlusTreeTitulares::insertarEnNodo(NodoBPlus* nodo, const std::string& ci, Titular* titular, NodoBPlus*& nuevoHijo, std::string& nuevaClave) {
+void BPlusTreeTitulares::insertarEnNodo(NodoBPlus* nodo, const std::string& ci, 
+    Titular* titular, NodoBPlus*& nuevoHijo, std::string& nuevaClave) {
+    
     int i = nodo->numClaves - 1;
+    
     if (nodo->esHoja) {
-        // Insertar en hoja
-        while (i >= 0 && ci < nodo->claves[i]) {
-            nodo->claves[i + 1] = nodo->claves[i];
-            nodo->datos[i + 1] = nodo->datos[i];
+        while (i >= 0 && ci < *(nodo->claves + i)) {
+            *(nodo->claves + i + 1) = *(nodo->claves + i);
+            *(nodo->datos + i + 1) = *(nodo->datos + i);
             --i;
         }
-        nodo->claves[i + 1] = ci;
-        nodo->datos[i + 1] = titular;
+        
+        *(nodo->claves + i + 1) = ci;
+        *(nodo->datos + i + 1) = titular;
         nodo->numClaves++;
 
-        // Split si es necesario
         if (nodo->numClaves == grado) {
             int mitad = grado / 2;
             NodoBPlus* nuevo = new NodoBPlus(grado, true);
             nuevo->numClaves = nodo->numClaves - mitad;
+            
             for (int j = 0; j < nuevo->numClaves; ++j) {
-                nuevo->claves[j] = nodo->claves[mitad + j];
-                nuevo->datos[j] = nodo->datos[mitad + j];
+                *(nuevo->claves + j) = *(nodo->claves + mitad + j);
+                *(nuevo->datos + j) = *(nodo->datos + mitad + j);
             }
+            
             nodo->numClaves = mitad;
             nuevo->siguiente = nodo->siguiente;
             nodo->siguiente = nuevo;
-            nuevaClave = nuevo->claves[0];
+            nuevaClave = *nuevo->claves;
             nuevoHijo = nuevo;
         } else {
             nuevoHijo = nullptr;
         }
     } else {
-        // Insertar en hijo adecuado
-        while (i >= 0 && ci < nodo->claves[i]) --i;
+        while (i >= 0 && ci < *(nodo->claves + i)) --i;
         ++i;
+        
         NodoBPlus* hijoNuevo = nullptr;
         std::string claveNueva;
-        insertarEnNodo(nodo->hijos[i], ci, titular, hijoNuevo, claveNueva);
+        insertarEnNodo(*(nodo->hijos + i), ci, titular, hijoNuevo, claveNueva);
+        
         if (hijoNuevo) {
-            // Insertar nueva clave y puntero en este nodo
             for (int j = nodo->numClaves; j > i; --j) {
-                nodo->claves[j] = nodo->claves[j - 1];
-                nodo->hijos[j + 1] = nodo->hijos[j];
+                *(nodo->claves + j) = *(nodo->claves + j - 1);
+                *(nodo->hijos + j + 1) = *(nodo->hijos + j);
             }
-            nodo->claves[i] = claveNueva;
-            nodo->hijos[i + 1] = hijoNuevo;
+            
+            *(nodo->claves + i) = claveNueva;
+            *(nodo->hijos + i + 1) = hijoNuevo;
             nodo->numClaves++;
-            // Split si es necesario
+            
             if (nodo->numClaves == grado) {
                 int mitad = grado / 2;
                 NodoBPlus* nuevo = new NodoBPlus(grado, false);
                 nuevo->numClaves = nodo->numClaves - mitad - 1;
+                
                 for (int j = 0; j < nuevo->numClaves; ++j) {
-                    nuevo->claves[j] = nodo->claves[mitad + 1 + j];
-                    nuevo->hijos[j] = nodo->hijos[mitad + 1 + j];
+                    *(nuevo->claves + j) = *(nodo->claves + mitad + 1 + j);
+                    *(nuevo->hijos + j) = *(nodo->hijos + mitad + 1 + j);
                 }
-                nuevo->hijos[nuevo->numClaves] = nodo->hijos[grado];
-                nuevaClave = nodo->claves[mitad];
+                
+                *(nuevo->hijos + nuevo->numClaves) = *(nodo->hijos + grado);
+                nuevaClave = *(nodo->claves + mitad);
                 nodo->numClaves = mitad;
                 nuevoHijo = nuevo;
             } else {
                 nuevoHijo = nullptr;
             }
-        } else {
-            nuevoHijo = nullptr;
         }
     }
 }
@@ -129,27 +136,21 @@ Titular* BPlusTreeTitulares::buscar(const std::string& ci) const {
 }
 
 Titular* BPlusTreeTitulares::buscarEnNodo(NodoBPlus* nodo, const std::string& ci) const {
-    if (!nodo) {
-        
-        return nullptr;  // Si el nodo es nulo, no encontramos el CI
-    }
+    if (!nodo) return nullptr;
 
     int i = 0;
-    while (i < nodo->numClaves && ci > nodo->claves[i]) {
+    while (i < nodo->numClaves && ci > *(nodo->claves + i)) {
         ++i;
     }
 
-
     if (nodo->esHoja) {
-        // Si es un nodo hoja, buscamos el titular
-        if (i < nodo->numClaves && ci == nodo->claves[i]) {
-            return nodo->datos[i];  // Retornamos el Titular correspondiente
+        if (i < nodo->numClaves && ci == *(nodo->claves + i)) {
+            return *(nodo->datos + i);
         }
         return nullptr;
     }
 
-    // Si no es hoja, seguimos buscando en los hijos
-    return buscarEnNodo(nodo->hijos[i], ci);
+    return buscarEnNodo(*(nodo->hijos + i), ci);
 }
 
 void BPlusTreeTitulares::eliminar(const std::string& ci) {
@@ -158,72 +159,69 @@ void BPlusTreeTitulares::eliminar(const std::string& ci) {
     eliminarEnNodo(raiz, ci, nullptr, -1);
 
     // Si la raíz queda vacía y tiene un hijo, actualizar la raíz
-    if (!raiz->esHoja && raiz->numClaves == 0 && raiz->hijos[0]) {
+    if (!raiz->esHoja && raiz->numClaves == 0 && *(raiz->hijos)) {
         NodoBPlus* temp = raiz;
-        raiz = raiz->hijos[0];
+        raiz = *(raiz->hijos);
         delete temp;
     }
 }
 
-void BPlusTreeTitulares::eliminarEnNodo(NodoBPlus* nodo, const std::string& ci, NodoBPlus* padre, int indicePadre) {
+void BPlusTreeTitulares::eliminarEnNodo(NodoBPlus* nodo, const std::string& ci, 
+    NodoBPlus* padre, int indicePadre) {
+    
     int i = 0;
-    while (i < nodo->numClaves && ci > nodo->claves[i]) {
+    while (i < nodo->numClaves && ci > *(nodo->claves + i)) {
         ++i;
     }
 
     if (nodo->esHoja) {
-        // Buscar la clave en la hoja
-        if (i < nodo->numClaves && ci == nodo->claves[i]) {
-            // Eliminar la clave y el dato
+        if (i < nodo->numClaves && ci == *(nodo->claves + i)) {
             for (int j = i; j < nodo->numClaves - 1; ++j) {
-                nodo->claves[j] = nodo->claves[j + 1];
-                nodo->datos[j] = nodo->datos[j + 1];
+                *(nodo->claves + j) = *(nodo->claves + j + 1);
+                *(nodo->datos + j) = *(nodo->datos + j + 1);
             }
             nodo->numClaves--;
         } else {
-            return; // Clave no encontrada
+            return;
         }
 
-        // Verificar si el nodo tiene menos claves de las mínimas
         if (nodo->numClaves < (grado + 1) / 2 - 1 && padre) {
             manejarUnderflow(nodo, padre, indicePadre);
         }
     } else {
-        // Nodo interno, descender al hijo adecuado
-        eliminarEnNodo(nodo->hijos[i], ci, nodo, i);
+        eliminarEnNodo(*(nodo->hijos + i), ci, nodo, i);
 
-        // Verificar si el hijo tiene menos claves de las mínimas
-        if (i <= nodo->numClaves && nodo->hijos[i]->numClaves < (grado + 1) / 2 - 1) {
-            manejarUnderflow(nodo->hijos[i], nodo, i);
+        if (i <= nodo->numClaves && (*(nodo->hijos + i))->numClaves < (grado + 1) / 2 - 1) {
+            manejarUnderflow(*(nodo->hijos + i), nodo, i);
         }
     }
 }
 
 void BPlusTreeTitulares::manejarUnderflow(NodoBPlus* nodo, NodoBPlus* padre, int indice) {
-    // Obtener hermanos
-    NodoBPlus* hermanoIzq = (indice > 0) ? padre->hijos[indice - 1] : nullptr;
-    NodoBPlus* hermanoDer = (indice < padre->numClaves) ? padre->hijos[indice + 1] : nullptr;
+    // Obtener hermanos usando aritmética de punteros
+    NodoBPlus* hermanoIzq = (indice > 0) ? *(padre->hijos + indice - 1) : nullptr;
+    NodoBPlus* hermanoDer = (indice < padre->numClaves) ? *(padre->hijos + indice + 1) : nullptr;
 
     // Intentar redistribuir con el hermano izquierdo
     if (hermanoIzq && hermanoIzq->numClaves > (grado + 1) / 2 - 1) {
         if (nodo->esHoja) {
             // Mover la última clave del hermano izquierdo al nodo
             for (int j = nodo->numClaves; j > 0; --j) {
-                nodo->claves[j] = nodo->claves[j - 1];
-                nodo->datos[j] = nodo->datos[j - 1];
+                *(nodo->claves + j) = *(nodo->claves + j - 1);
+                *(nodo->datos + j) = *(nodo->datos + j - 1);
             }
-            nodo->claves[0] = hermanoIzq->claves[hermanoIzq->numClaves - 1];
-            nodo->datos[0] = hermanoIzq->datos[hermanoIzq->numClaves - 1];
+            *(nodo->claves) = *(hermanoIzq->claves + hermanoIzq->numClaves - 1);
+            *(nodo->datos) = *(hermanoIzq->datos + hermanoIzq->numClaves - 1);
             nodo->numClaves++;
             hermanoIzq->numClaves--;
             // Actualizar clave en el padre
-            padre->claves[indice - 1] = nodo->claves[0];
+            *(padre->claves + indice - 1) = *(nodo->claves);
         } else {
             // Mover la clave del padre al nodo y la última clave del hermano al padre
-            nodo->claves[nodo->numClaves] = padre->claves[indice - 1];
-            nodo->hijos[nodo->numClaves + 1] = hermanoIzq->hijos[hermanoIzq->numClaves];
+            *(nodo->claves + nodo->numClaves) = *(padre->claves + indice - 1);
+            *(nodo->hijos + nodo->numClaves + 1) = *(hermanoIzq->hijos + hermanoIzq->numClaves);
             nodo->numClaves++;
-            padre->claves[indice - 1] = hermanoIzq->claves[hermanoIzq->numClaves - 1];
+            *(padre->claves + indice - 1) = *(hermanoIzq->claves + hermanoIzq->numClaves - 1);
             hermanoIzq->numClaves--;
         }
         return;
@@ -233,27 +231,27 @@ void BPlusTreeTitulares::manejarUnderflow(NodoBPlus* nodo, NodoBPlus* padre, int
     if (hermanoDer && hermanoDer->numClaves > (grado + 1) / 2 - 1) {
         if (nodo->esHoja) {
             // Mover la primera clave del hermano derecho al nodo
-            nodo->claves[nodo->numClaves] = hermanoDer->claves[0];
-            nodo->datos[nodo->numClaves] = hermanoDer->datos[0];
+            *(nodo->claves + nodo->numClaves) = *(hermanoDer->claves);
+            *(nodo->datos + nodo->numClaves) = *(hermanoDer->datos);
             nodo->numClaves++;
             for (int j = 0; j < hermanoDer->numClaves - 1; ++j) {
-                hermanoDer->claves[j] = hermanoDer->claves[j + 1];
-                hermanoDer->datos[j] = hermanoDer->datos[j + 1];
+                *(hermanoDer->claves + j) = *(hermanoDer->claves + j + 1);
+                *(hermanoDer->datos + j) = *(hermanoDer->datos + j + 1);
             }
             hermanoDer->numClaves--;
             // Actualizar clave en el padre
-            padre->claves[indice] = hermanoDer->claves[0];
+            *(padre->claves + indice) = *(hermanoDer->claves);
         } else {
             // Mover la clave del padre al nodo y la primera clave del hermano al padre
-            nodo->claves[nodo->numClaves] = padre->claves[indice];
-            nodo->hijos[nodo->numClaves + 1] = hermanoDer->hijos[0];
+            *(nodo->claves + nodo->numClaves) = *(padre->claves + indice);
+            *(nodo->hijos + nodo->numClaves + 1) = *(hermanoDer->hijos);
             nodo->numClaves++;
-            padre->claves[indice] = hermanoDer->claves[0];
+            *(padre->claves + indice) = *(hermanoDer->claves);
             for (int j = 0; j < hermanoDer->numClaves - 1; ++j) {
-                hermanoDer->claves[j] = hermanoDer->claves[j + 1];
-                hermanoDer->hijos[j] = hermanoDer->hijos[j + 1];
+                *(hermanoDer->claves + j) = *(hermanoDer->claves + j + 1);
+                *(hermanoDer->hijos + j) = *(hermanoDer->hijos + j + 1);
             }
-            hermanoDer->hijos[hermanoDer->numClaves - 1] = hermanoDer->hijos[hermanoDer->numClaves];
+            *(hermanoDer->hijos + hermanoDer->numClaves - 1) = *(hermanoDer->hijos + hermanoDer->numClaves);
             hermanoDer->numClaves--;
         }
         return;
@@ -264,31 +262,31 @@ void BPlusTreeTitulares::manejarUnderflow(NodoBPlus* nodo, NodoBPlus* padre, int
         if (nodo->esHoja) {
             // Fusionar nodo con hermano izquierdo
             for (int j = 0; j < nodo->numClaves; ++j) {
-                hermanoIzq->claves[hermanoIzq->numClaves + j] = nodo->claves[j];
-                hermanoIzq->datos[hermanoIzq->numClaves + j] = nodo->datos[j];
+                *(hermanoIzq->claves + hermanoIzq->numClaves + j) = *(nodo->claves + j);
+                *(hermanoIzq->datos + hermanoIzq->numClaves + j) = *(nodo->datos + j);
             }
             hermanoIzq->numClaves += nodo->numClaves;
             hermanoIzq->siguiente = nodo->siguiente;
             // Eliminar la clave del padre
             for (int j = indice - 1; j < padre->numClaves - 1; ++j) {
-                padre->claves[j] = padre->claves[j + 1];
-                padre->hijos[j + 1] = padre->hijos[j + 2];
+                *(padre->claves + j) = *(padre->claves + j + 1);
+                *(padre->hijos + j + 1) = *(padre->hijos + j + 2);
             }
             padre->numClaves--;
             delete nodo;
         } else {
             // Fusionar nodo con hermano izquierdo
-            hermanoIzq->claves[hermanoIzq->numClaves] = padre->claves[indice - 1];
+            *(hermanoIzq->claves + hermanoIzq->numClaves) = *(padre->claves + indice - 1);
             hermanoIzq->numClaves++;
             for (int j = 0; j < nodo->numClaves; ++j) {
-                hermanoIzq->claves[hermanoIzq->numClaves + j] = nodo->claves[j];
-                hermanoIzq->hijos[hermanoIzq->numClaves + j] = nodo->hijos[j];
+                *(hermanoIzq->claves + hermanoIzq->numClaves + j) = *(nodo->claves + j);
+                *(hermanoIzq->hijos + hermanoIzq->numClaves + j) = *(nodo->hijos + j);
             }
-            hermanoIzq->hijos[hermanoIzq->numClaves + nodo->numClaves] = nodo->hijos[nodo->numClaves];
+            *(hermanoIzq->hijos + hermanoIzq->numClaves + nodo->numClaves) = *(nodo->hijos + nodo->numClaves);
             hermanoIzq->numClaves += nodo->numClaves;
             for (int j = indice - 1; j < padre->numClaves - 1; ++j) {
-                padre->claves[j] = padre->claves[j + 1];
-                padre->hijos[j + 1] = padre->hijos[j + 2];
+                *(padre->claves + j) = *(padre->claves + j + 1);
+                *(padre->hijos + j + 1) = *(padre->hijos + j + 2);
             }
             padre->numClaves--;
             delete nodo;
@@ -297,30 +295,30 @@ void BPlusTreeTitulares::manejarUnderflow(NodoBPlus* nodo, NodoBPlus* padre, int
         if (nodo->esHoja) {
             // Fusionar nodo con hermano derecho
             for (int j = 0; j < hermanoDer->numClaves; ++j) {
-                nodo->claves[nodo->numClaves + j] = hermanoDer->claves[j];
-                nodo->datos[nodo->numClaves + j] = hermanoDer->datos[j];
+                *(nodo->claves + nodo->numClaves + j) = *(hermanoDer->claves + j);
+                *(nodo->datos + nodo->numClaves + j) = *(hermanoDer->datos + j);
             }
             nodo->numClaves += hermanoDer->numClaves;
             nodo->siguiente = hermanoDer->siguiente;
             for (int j = indice; j < padre->numClaves - 1; ++j) {
-                padre->claves[j] = padre->claves[j + 1];
-                padre->hijos[j + 1] = padre->hijos[j + 2];
+                *(padre->claves + j) = *(padre->claves + j + 1);
+                *(padre->hijos + j + 1) = *(padre->hijos + j + 2);
             }
             padre->numClaves--;
             delete hermanoDer;
         } else {
             // Fusionar nodo con hermano derecho
-            nodo->claves[nodo->numClaves] = padre->claves[indice];
+            *(nodo->claves + nodo->numClaves) = *(padre->claves + indice);
             nodo->numClaves++;
             for (int j = 0; j < hermanoDer->numClaves; ++j) {
-                nodo->claves[nodo->numClaves + j] = hermanoDer->claves[j];
-                nodo->hijos[nodo->numClaves + j] = hermanoDer->hijos[j];
+                *(nodo->claves + nodo->numClaves + j) = *(hermanoDer->claves + j);
+                *(nodo->hijos + nodo->numClaves + j) = *(hermanoDer->hijos + j);
             }
-            nodo->hijos[nodo->numClaves + hermanoDer->numClaves] = hermanoDer->hijos[hermanoDer->numClaves];
+            *(nodo->hijos + nodo->numClaves + hermanoDer->numClaves) = *(hermanoDer->hijos + hermanoDer->numClaves);
             nodo->numClaves += hermanoDer->numClaves;
             for (int j = indice; j < padre->numClaves - 1; ++j) {
-                padre->claves[j] = padre->claves[j + 1];
-                padre->hijos[j + 1] = padre->hijos[j + 2];
+                *(padre->claves + j) = *(padre->claves + j + 1);
+                *(padre->hijos + j + 1) = *(padre->hijos + j + 2);
             }
             padre->numClaves--;
             delete hermanoDer;
@@ -332,19 +330,25 @@ void BPlusTreeTitulares::imprimir() const {
     imprimirNodo(raiz, 0, true);
 }
 
-void BPlusTreeTitulares::imprimirNodo(NodoBPlus* nodo, int nivel,bool esRaiz) const {
+void BPlusTreeTitulares::imprimirNodo(NodoBPlus* nodo, int nivel, bool esRaiz) const {
     if (!nodo) return;
+    
     if (esRaiz) {
         std::cout << "Raiz: ";
     } else {
-        std::cout << std::string(nivel * 2, ' ') << (nodo->esHoja ? "[Hoja] " : "[Interno] ");
+        std::cout << std::string(nivel * 2, ' ') 
+                 << (nodo->esHoja ? "[Hoja] " : "[Interno] ");
     }
-    for (int i = 0; i < nodo->numClaves; ++i)
-        std::cout << nodo->claves[i] << " ";
+    
+    for (int i = 0; i < nodo->numClaves; ++i) {
+        std::cout << *(nodo->claves + i) << " ";
+    }
     std::cout << std::endl;
+    
     if (!nodo->esHoja) {
-        for (int i = 0; i <= nodo->numClaves; ++i)
-            imprimirNodo(nodo->hijos[i], nivel + 1);
+        for (int i = 0; i <= nodo->numClaves; ++i) {
+            imprimirNodo(*(nodo->hijos + i), nivel + 1);
+        }
     }
 }
 
@@ -369,225 +373,364 @@ void BPlusTreeTitulares::imprimirArbolBPlus() const {
 void BPlusTreeTitulares::imprimirNodoArbolBPlus(NodoBPlus* nodo, int nivel) const {
     if (!nodo) return;
 
-    // Indentación basada en el nivel
     std::string indent(nivel * 4, ' ');
     std::string connector = (nivel > 0) ? "  |--" : "";
 
-    // Etiqueta de nivel
     std::cout << indent << "Nivel " << nivel << ": " << connector << "[";
 
-    // Mostrar las claves
+    // Mostrar las claves usando aritmética de punteros
     for (int i = 0; i < nodo->numClaves; ++i) {
-        std::cout << nodo->claves[i];
+        std::cout << *(nodo->claves + i);
         if (i < nodo->numClaves - 1) std::cout << ", ";
     }
     std::cout << "]" << (nodo->esHoja ? " (Hoja)" : " (Interno)") << std::endl;
 
-    // Imprimir hijos si no es hoja
     if (!nodo->esHoja) {
         for (int i = 0; i <= nodo->numClaves; ++i) {
-            // Línea de conexión
             if (i < nodo->numClaves) {
                 std::cout << indent << "  |" << std::endl;
             }
-            imprimirNodoArbolBPlus(nodo->hijos[i], nivel + 1);
+            imprimirNodoArbolBPlus(*(nodo->hijos + i), nivel + 1);
         }
     }
 }
 
 void BPlusTreeTitulares::graficarArbol() const {
-    sf::RenderWindow window(sf::VideoMode(1200, 800), "B+ Tree Visualization");
-    window.setFramerateLimit(60);
+    // Crear ventana SFML
+    sf::RenderWindow* window = new sf::RenderWindow(sf::VideoMode(1200, 800), "B+ Tree Visualization");
+    window->setFramerateLimit(60);
 
     // Configuración de la fuente
-    sf::Font font;
-    if (!font.loadFromFile("arial.ttf")) {
+    sf::Font* font = new sf::Font();
+    if (!font->loadFromFile("arial.ttf")) {
         std::cerr << "Error: No se pudo cargar la fuente arial.ttf" << std::endl;
-        window.close();
-        system("pause");
+        delete window;
+        delete font;
         return;
     }
 
-    // Parámetros de visualización (nodos más grandes: 160x60 como base)
+    // Validar si el árbol está vacío
+    if (!raiz) {
+        sf::Text* mensaje = new sf::Text("Arbol B+ vacio", *font, 24);
+        mensaje->setFillColor(sf::Color::Black);
+        sf::FloatRect bounds = mensaje->getLocalBounds();
+        mensaje->setPosition(window->getSize().x / 2.0f - bounds.width / 2.0f,
+                           window->getSize().y / 2.0f - bounds.height / 2.0f);
+
+        window->clear(sf::Color::White);
+        window->draw(*mensaje);
+        window->display();
+
+        sf::Event evt;
+        while (window->waitEvent(evt)) {
+            if (evt.type == sf::Event::Closed) {
+                window->close();
+                break;
+            }
+        }
+
+        delete mensaje;
+        delete font;
+        delete window;
+        std::cout << "\nVentana de visualizacion cerrada. Regresando al menu...\n" << std::endl;
+        return;
+    }
+
+    // Parámetros de visualización
     const float baseNodeWidth = 160.0f;
     const float nodeHeight = 60.0f;
     const float verticalSpacing = 120.0f;
     const float horizontalSpacing = 30.0f;
     const float textOffsetY = 15.0f;
 
-    // Estructura para almacenar posiciones de los nodos
+    // Estructura para información de nodos
     struct NodeInfo {
         NodoBPlus* nodo;
         float x, y;
-        float nodeWidth; // Ancho dinámico por nodo
+        float nodeWidth;
         int nivel;
-        NodeInfo(NodoBPlus* n, float x_, float y_, float w, int lvl) : nodo(n), x(x_), y(y_), nodeWidth(w), nivel(lvl) {}
+        NodeInfo* siguiente;
+        NodeInfo(NodoBPlus* n, float x_, float y_, float w, int lvl)
+            : nodo(n), x(x_), y(y_), nodeWidth(w), nivel(lvl), siguiente(nullptr) {}
     };
 
-    // Cola para recorrer el árbol por niveles
-    std::queue<NodeInfo> queue;
-    std::vector<std::vector<NodeInfo>> levels;
-    if (raiz) {
-        // Calcular ancho dinámico para la raíz
-        std::string rootText;
-        for (int i = 0; i < raiz->numClaves; ++i) {
-            rootText += raiz->claves[i];
-            if (i < raiz->numClaves - 1) rootText += ", ";
+    // Estructura para niveles del árbol
+    struct NivelArbol {
+        NodeInfo* primero;
+        NivelArbol* siguiente;
+        NivelArbol() : primero(nullptr), siguiente(nullptr) {}
+        ~NivelArbol() {
+            NodeInfo* actual = primero;
+            while (actual) {
+                NodeInfo* temp = actual;
+                actual = actual->siguiente;
+                delete temp;
+            }
         }
-        sf::Text tempText(rootText, font, 16);
-        float rootWidth = tempText.getLocalBounds().width + 20.0f; // Margen de 10 por lado
-        float startX = window.getSize().x / 2.0f;
-        queue.push(NodeInfo(raiz, startX, 50.0f, (rootWidth > baseNodeWidth ? rootWidth : baseNodeWidth), 0));
+    };
+
+    // Estructura para cola dinámica
+    struct Cola {
+        struct NodoCola {
+            NodeInfo* info;
+            NodoCola* siguiente;
+            NodoCola(NodeInfo* i) : info(i), siguiente(nullptr) {}
+        };
+        NodoCola* frente;
+        NodoCola* final;
+        Cola() : frente(nullptr), final(nullptr) {}
+        void push(NodeInfo* info) {
+            NodoCola* nuevo = new NodoCola(info);
+            if (!frente) frente = final = nuevo;
+            else {
+                final->siguiente = nuevo;
+                final = nuevo;
+            }
+        }
+        NodeInfo* pop() {
+            if (!frente) return nullptr;
+            NodoCola* temp = frente;
+            NodeInfo* info = temp->info;
+            frente = frente->siguiente;
+            if (!frente) final = nullptr;
+            delete temp;
+            return info;
+        }
+        bool empty() const { return frente == nullptr; }
+        ~Cola() {
+            while (frente) {
+                NodoCola* temp = frente;
+                frente = frente->siguiente;
+                delete temp;
+            }
+        }
+    };
+
+    Cola* cola = new Cola();
+    NivelArbol* nivelesInicio = nullptr;
+    NivelArbol* nivelesFin = nullptr;
+
+    // Procesar raíz
+    if (raiz) {
+        std::string* rootText = new std::string();
+        for (int i = 0; i < raiz->numClaves; ++i) {
+            *rootText += *(raiz->claves + i);
+            if (i < raiz->numClaves - 1) *rootText += ", ";
+        }
+        sf::Text* tempText = new sf::Text(*rootText, *font, 16);
+        float rootWidth = tempText->getLocalBounds().width + 20.0f;
+        float startX = window->getSize().x / 2.0f;
+        cola->push(new NodeInfo(raiz, startX, 50.0f, (rootWidth > baseNodeWidth ? rootWidth : baseNodeWidth), 0));
+        delete rootText;
+        delete tempText;
     }
 
-    // Calcular posiciones de los nodos con ancho dinámico
-    while (!queue.empty()) {
-        NodeInfo current = queue.front();
-        queue.pop();
-        if (current.nivel >= static_cast<int>(levels.size())) {
-            levels.emplace_back();
+    // Calcular posiciones de los nodos
+    while (!cola->empty()) {
+        NodeInfo* current = cola->pop();
+        if (!nivelesInicio || nivelesFin->primero->nivel < current->nivel) {
+            NivelArbol* nuevoNivel = new NivelArbol();
+            if (!nivelesInicio) nivelesInicio = nuevoNivel;
+            else nivelesFin->siguiente = nuevoNivel;
+            nivelesFin = nuevoNivel;
         }
-        levels[current.nivel].push_back(current);
+        NodeInfo* temp = nivelesFin->primero;
+        if (temp) {
+            while (temp->siguiente) temp = temp->siguiente;
+            temp->siguiente = current;
+        } else {
+            nivelesFin->primero = current;
+        }
 
-        if (!current.nodo->esHoja) {
-            float totalWidth = current.nodo->numClaves * (current.nodeWidth + horizontalSpacing);
-            float startX = current.x - totalWidth / 2.0f;
-            for (int i = 0; i <= current.nodo->numClaves; ++i) {
-                // Calcular ancho dinámico para el hijo
-                std::string childText;
-                if (current.nodo->hijos[i]) {
-                    for (int j = 0; j < current.nodo->hijos[i]->numClaves; ++j) {
-                        childText += current.nodo->hijos[i]->claves[j];
-                        if (j < current.nodo->hijos[i]->numClaves - 1) childText += ", ";
+        if (!current->nodo->esHoja) {
+            float totalWidth = (current->nodo->numClaves + 1) * baseNodeWidth + current->nodo->numClaves * horizontalSpacing;
+            float startX = current->x - totalWidth / 2.0f + baseNodeWidth / 2.0f;
+            for (int i = 0; i <= current->nodo->numClaves; ++i) {
+                NodoBPlus* hijo = *(current->nodo->hijos + i);
+                if (hijo) {
+                    std::string* childText = new std::string();
+                    for (int j = 0; j < hijo->numClaves; ++j) {
+                        *childText += *(hijo->claves + j);
+                        if (j < hijo->numClaves - 1) *childText += ", ";
                     }
-                    sf::Text tempText(childText, font, 16);
-                    float childWidth = tempText.getLocalBounds().width + 20.0f;
-                    float childX = startX + i * (current.nodeWidth + horizontalSpacing) + current.nodeWidth / 2.0f;
-                    float childY = current.y + verticalSpacing;
-                    if (current.nodo->hijos[i]) {
-                        queue.push(NodeInfo(current.nodo->hijos[i], childX, childY, (childWidth > baseNodeWidth ? childWidth : baseNodeWidth), current.nivel + 1));
-                    }
+                    sf::Text* tempText = new sf::Text(*childText, *font, 16);
+                    float childWidth = tempText->getLocalBounds().width + 20.0f;
+                    float childX = startX + i * (baseNodeWidth + horizontalSpacing);
+                    cola->push(new NodeInfo(hijo, childX, current->y + verticalSpacing,
+                                          (childWidth > baseNodeWidth ? childWidth : baseNodeWidth), current->nivel + 1));
+                    delete childText;
+                    delete tempText;
                 }
             }
         }
     }
 
-    // Ajustar posiciones para evitar solapamientos y centrar el árbol
-    for (auto& level : levels) {
-        std::sort(level.begin(), level.end(), [](const NodeInfo& a, const NodeInfo& b) {
-            return a.x < b.x;
-        });
-        // Calcular el ancho total del nivel
+    // Ajustar posiciones para centrar niveles
+    NivelArbol* nivel = nivelesInicio;
+    while (nivel) {
+        NodeInfo* nodo = nivel->primero;
         float totalWidth = 0.0f;
-        for (const auto& node : level) {
-            totalWidth += node.nodeWidth;
+        int count = 0;
+        while (nodo) {
+            totalWidth += nodo->nodeWidth;
+            count++;
+            nodo = nodo->siguiente;
         }
-        totalWidth += (level.size() - 1) * horizontalSpacing;
-        float levelStartX = (window.getSize().x - totalWidth) / 2.0f;
+        totalWidth += (count - 1) * horizontalSpacing;
+        float levelStartX = (window->getSize().x - totalWidth) / 2.0f;
         float currentX = levelStartX;
-        for (auto& node : level) {
-            node.x = currentX + node.nodeWidth / 2.0f;
-            currentX += node.nodeWidth + horizontalSpacing;
+        nodo = nivel->primero;
+        while (nodo) {
+            nodo->x = currentX + nodo->nodeWidth / 2.0f;
+            currentX += nodo->nodeWidth + horizontalSpacing;
+            nodo = nodo->siguiente;
         }
+        nivel = nivel->siguiente;
     }
 
-    while (window.isOpen()) {
+    // Bucle principal
+    while (window->isOpen()) {
         sf::Event event;
-        while (window.pollEvent(event)) {
+        while (window->pollEvent(event)) {
             if (event.type == sf::Event::Closed || (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)) {
-                window.close();
+                window->close();
             }
         }
 
-        window.clear(sf::Color::White);
+        window->clear(sf::Color::White);
 
         // Dibujar conexiones entre nodos
-        for (const auto& level : levels) {
-            for (const auto& nodeInfo : level) {
-                NodoBPlus* nodo = nodeInfo.nodo;
-                if (!nodo->esHoja) {
-                    float parentX = nodeInfo.x;
-                    float parentY = nodeInfo.y + nodeHeight;
-                    for (int i = 0; i <= nodo->numClaves; ++i) {
-                        if (nodo->hijos[i]) {
-                            // Encontrar la posición del hijo
-                            float childX = 0.0f, childY = 0.0f;
-                            for (const auto& nextLevel : levels) {
-                                for (const auto& childInfo : nextLevel) {
-                                    if (childInfo.nodo == nodo->hijos[i]) {
-                                        childX = childInfo.x;
-                                        childY = childInfo.y;
-                                        break;
+        nivel = nivelesInicio;
+        while (nivel) {
+            NodeInfo* nodo = nivel->primero;
+            while (nodo) {
+                if (!nodo->nodo->esHoja) {
+                    float parentX = nodo->x;
+                    float parentY = nodo->y + nodeHeight;
+                    for (int i = 0; i <= nodo->nodo->numClaves; ++i) {
+                        NodoBPlus* hijo = *(nodo->nodo->hijos + i);
+                        if (hijo) {
+                            NivelArbol* tmpNivel = nivel->siguiente;
+                            while (tmpNivel) {
+                                NodeInfo* tmpNodo = tmpNivel->primero;
+                                while (tmpNodo) {
+                                    if (tmpNodo->nodo == hijo) {
+                                        sf::Vertex* line = new sf::Vertex[2];
+                                        line[0] = sf::Vertex(sf::Vector2f(parentX, parentY), sf::Color::Black);
+                                        line[1] = sf::Vertex(sf::Vector2f(tmpNodo->x, tmpNodo->y), sf::Color::Black);
+                                        window->draw(line, 2, sf::Lines);
+                                        delete[] line;
                                     }
+                                    tmpNodo = tmpNodo->siguiente;
                                 }
+                                tmpNivel = tmpNivel->siguiente;
                             }
-                            sf::Vertex line[] = {
-                                sf::Vertex(sf::Vector2f(parentX, parentY), sf::Color::Black),
-                                sf::Vertex(sf::Vector2f(childX, childY), sf::Color::Black)
-                            };
-                            window.draw(line, 2, sf::Lines);
                         }
                     }
                 }
+                nodo = nodo->siguiente;
             }
+            nivel = nivel->siguiente;
         }
 
         // Dibujar nodos
-        for (const auto& level : levels) {
-            for (const auto& nodeInfo : level) {
-                NodoBPlus* nodo = nodeInfo.nodo;
-                float x = nodeInfo.x - nodeInfo.nodeWidth / 2.0f;
-                float y = nodeInfo.y;
+        nivel = nivelesInicio;
+        while (nivel) {
+            NodeInfo* nodo = nivel->primero;
+            while (nodo) {
+                float x = nodo->x - nodo->nodeWidth / 2.0f;
+                float y = nodo->y;
 
-                // Dibujar rectángulo del nodo con ancho dinámico
-                sf::RectangleShape rect(sf::Vector2f(nodeInfo.nodeWidth, nodeHeight));
-                rect.setPosition(x, y);
-                rect.setFillColor(nodo->esHoja ? sf::Color(144, 238, 144) : sf::Color(173, 216, 230));
-                rect.setOutlineColor(sf::Color::Black);
-                rect.setOutlineThickness(2);
-                window.draw(rect);
+                // Dibujar rectángulo
+                sf::RectangleShape* rect = new sf::RectangleShape(sf::Vector2f(nodo->nodeWidth, nodeHeight));
+                rect->setPosition(x, y);
+                rect->setFillColor(nodo->nodo->esHoja ? sf::Color(144, 238, 144) : sf::Color(173, 216, 230));
+                rect->setOutlineColor(sf::Color::Black);
+                rect->setOutlineThickness(2);
+                window->draw(*rect);
+                delete rect;
 
-                // Construir texto con las claves
-                std::string texto;
-                for (int i = 0; i < nodo->numClaves; ++i) {
-                    texto += nodo->claves[i];
-                    if (i < nodo->numClaves - 1) texto += ", ";
+                // Dibujar texto
+                std::string* texto = new std::string();
+                for (int i = 0; i < nodo->nodo->numClaves; ++i) {
+                    *texto += *(nodo->nodo->claves + i);
+                    if (i < nodo->nodo->numClaves - 1) *texto += ", ";
                 }
-                sf::Text textoNodo(texto, font, 16);
-                textoNodo.setFillColor(sf::Color::Black);
-                // Ajustar posición para centrar el texto horizontalmente
-                float textX = x + (nodeInfo.nodeWidth - textoNodo.getLocalBounds().width) / 2.0f;
-                textoNodo.setPosition(textX, y + textOffsetY);
-                window.draw(textoNodo);
+                sf::Text* textoNodo = new sf::Text(*texto, *font, 16);
+                textoNodo->setFillColor(sf::Color::Black);
+                float textX = x + (nodo->nodeWidth - textoNodo->getLocalBounds().width) / 2.0f;
+                textoNodo->setPosition(textX, y + textOffsetY);
+                window->draw(*textoNodo);
+                delete texto;
+                delete textoNodo;
 
-                // Mostrar enlace a siguiente hoja si existe
-                if (nodo->esHoja && nodo->siguiente) {
-                    sf::Vertex line[] = {
-                        sf::Vertex(sf::Vector2f(x + nodeInfo.nodeWidth, y + nodeHeight / 2), sf::Color::Red),
-                        sf::Vertex(sf::Vector2f(x + nodeInfo.nodeWidth + 30, y + nodeHeight / 2), sf::Color::Red)
-                    };
-                    window.draw(line, 2, sf::Lines);
-                    sf::CircleShape arrow(7, 3);
-                    arrow.setPosition(x + nodeInfo.nodeWidth + 30, y + nodeHeight / 2 - 7);
-                    arrow.setFillColor(sf::Color::Red);
-                    arrow.setRotation(90);
-                    window.draw(arrow);
+                // Dibujar flecha a siguiente hoja
+                if (nodo->nodo->esHoja && nodo->nodo->siguiente) {
+                    NodeInfo* nextNode = nullptr;
+                    NivelArbol* tmpNivel = nivel;
+                    while (tmpNivel) {
+                        NodeInfo* tmpNodo = tmpNivel->primero;
+                        while (tmpNodo) {
+                            if (tmpNodo->nodo == nodo->nodo->siguiente) {
+                                nextNode = tmpNodo;
+                                break;
+                            }
+                            tmpNodo = tmpNodo->siguiente;
+                        }
+                        if (nextNode) break;
+                        tmpNivel = tmpNivel->siguiente;
+                    }
+                    if (nextNode) {
+                        sf::Vector2f inicio(x + nodo->nodeWidth, y + nodeHeight / 2);
+                        sf::Vector2f fin(nextNode->x - nextNode->nodeWidth / 2, y + nodeHeight / 2);
+
+                        // Dibujar línea
+                        sf::Vertex* line = new sf::Vertex[2];
+                        line[0] = sf::Vertex(inicio, sf::Color::Red);
+                        line[1] = sf::Vertex(fin, sf::Color::Red);
+                        window->draw(line, 2, sf::Lines);
+                        delete[] line;
+
+                        // Calcular dirección y punto medio para la flecha
+                        sf::Vector2f direction(fin.x - inicio.x, fin.y - inicio.y);
+                        float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+                        if (length > 0) {
+                            sf::Vector2f unitDirection(direction.x / length, direction.y / length);
+                            sf::Vector2f medio((inicio.x + fin.x) / 2.0f, (inicio.y + fin.y) / 2.0f);
+
+                            // Ajustar tamaño de la flecha según la distancia
+                            float arrowSize = std::min(20.0f, length / 4.0f); // Tamaño proporcional
+                            sf::ConvexShape* arrow = new sf::ConvexShape();
+                            arrow->setPointCount(3);
+                            arrow->setPoint(0, sf::Vector2f(0, 0));
+                            arrow->setPoint(1, sf::Vector2f(-arrowSize, -arrowSize / 2));
+                            arrow->setPoint(2, sf::Vector2f(-arrowSize, arrowSize / 2));
+                            arrow->setFillColor(sf::Color::Red);
+                            arrow->setPosition(medio.x - arrowSize / 2 * unitDirection.x, medio.y - arrowSize / 2 * unitDirection.y);
+                            float angle = std::atan2(unitDirection.y, unitDirection.x) * 180.0f / 3.14159f;
+                            arrow->setRotation(angle);
+                            window->draw(*arrow);
+                            delete arrow;
+                        }
+                    }
                 }
+                nodo = nodo->siguiente;
             }
+            nivel = nivel->siguiente;
         }
 
-        // Mensaje si el árbol está vacío
-        if (!raiz) {
-            sf::Text texto("Arbol B+ vacio", font, 24);
-            texto.setFillColor(sf::Color::Black);
-            texto.setPosition((window.getSize().x - texto.getLocalBounds().width) / 2, window.getSize().y / 2);
-            window.draw(texto);
-        }
-
-        window.display();
+        window->display();
     }
 
-    // Mostrar mensaje de cierre en consola
-    std::cout << "\nVentana de visualización cerrada. Regresando al menú...\n" << std::endl;
-    system("pause");
+    // Liberar memoria
+    delete cola;
+    while (nivelesInicio) {
+        NivelArbol* tempNivel = nivelesInicio;
+        nivelesInicio = nivelesInicio->siguiente;
+        delete tempNivel;
+    }
+    delete font;
+    delete window;
+
+    std::cout << "\nVentana de visualizacion cerrada. Regresando al menu...\n" << std::endl;
 }

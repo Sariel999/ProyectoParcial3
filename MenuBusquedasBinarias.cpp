@@ -68,7 +68,7 @@ void MenuBusquedasBinarias::buscarDepositoMayorIgual(const ListaDobleCircular<Ti
 void MenuBusquedasBinarias::calcularDepositoMinimoMeta(const ListaDobleCircular<Titular*>& titulares) {
     system("cls");
     cout << "\n--- Deposito minimo mensual para meta de ahorro ---\n";
-    cout << " Esta funcion permite calcular el deposito mensual minimo necesario para alcanzar una meta de ahorro en un plazo determinado inciando con el saldo actual de la cuenta .\n";
+    cout << " Esta funcion permite calcular el deposito mensual minimo necesario para alcanzar una meta de ahorro en un plazo maximo de 5 anios (60 meses) inciando con el saldo actual de la cuenta .\n";
     
     string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular:");
     Titular* titular = encontrarTitularPorCI(titulares, cedula);
@@ -109,15 +109,23 @@ void MenuBusquedasBinarias::calcularDepositoMinimoMeta(const ListaDobleCircular<
     float saldoMeta;
     int meses;
     do {
-        cout << "Saldo meta: "; 
-        cin >> saldoMeta;
+        saldoMeta=val.ingresarMonto("\nSaldo meta: ");
         if (saldoMeta <= saldoInicial) {
-            cout << "El saldo meta debe ser mayor al saldo actual de la cuenta. Intente de nuevo.\n";
+            cout << "\nEl saldo meta debe ser mayor al saldo actual de la cuenta. Intente de nuevo.\n";
         }
     } while (saldoMeta <= saldoInicial);
     
     cout << "Meses para alcanzar la meta: "; 
-    cin >> meses;
+    do
+    {
+        meses = val.ingresarEntero("\nMeses para alcanzar la meta: ");
+        if (meses <= 0) {
+            cout << "\nEl numero de meses debe ser un entero positivo. Intente de nuevo.\n";
+        }
+        if(meses > 60) {
+            cout << "\nEl numero de meses no debe ser mayor a 120. Intente de nuevo.\n";
+        }
+    } while (meses <= 0 || meses > 60);
     
     int deposito = buscador.depositoMinimoParaMeta(saldoInicial, saldoMeta, meses);
     cout << "Deposito mensual minimo necesario: $" << deposito << endl;
@@ -152,15 +160,19 @@ void MenuBusquedasBinarias::buscarTitularPorAnioNacimiento(ListaDobleCircular<Ti
     system("cls");
     cout << "\n--- Buscar primer titular por anio de nacimiento (mayor o igual) ---\n";
     int anio;
-    cout << "Ingrese anio de nacimiento a buscar: "; 
-    cin >> anio;
+    do{
+        anio = val.ingresarEntero("\nIngrese anio de nacimiento a buscar: ");
+        if(anio < 1900 || anio > 2006){
+            cout << "\nAnio invalido. Intente de nuevo.\n";
+        }
+    }while( anio < 1900 || anio > 2025);
     
     Titular* t = buscador.primerTitularAnioNacimientoMayorIgual(titulares, anio);
     if (t) {
-        cout << "Primer titular con anio de nacimiento >= " << anio << ":\n";
+        cout << "\nPrimer titular con anio de nacimiento >= " << anio << ":\n";
         t->getPersona().imprimir();
     } else {
-        cout << "No se encontro ningun titular con ese anio o mayor.\n";
+        cout << "\nNo se encontro ningun titular con ese anio o mayor.\n";
     }
     system("pause");
 }

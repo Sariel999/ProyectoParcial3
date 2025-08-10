@@ -99,13 +99,9 @@ void CuentaBancaria::imprimirMovimientos() {
         std::cout << "  (Sin movimientos)\n";
         return;
     }
-    NodoDoble<Movimiento*>* actual = movimientos.getCabeza();
-    if (actual) {
-        do {
-            Movimiento* m = actual->dato;
-            if (m) m->imprimir();
-            actual = actual->siguiente;
-        } while (actual != movimientos.getCabeza());
+    
+    for (Movimiento* m : movimientos) {
+        if (m) m->imprimir();
     }
 }
 
@@ -113,9 +109,9 @@ char CuentaBancaria::calcularDigitoVerificador(const std::string& cuenta) {
     int suma = 0;
     int peso = 2;
 
-    for (size_t i = 0; i < cuenta.length(); ++i) {
-        if (isdigit(cuenta[i])) {
-            suma += (cuenta[i] - '0') * peso;
+    for (char c : cuenta) {
+        if (isdigit(c)) {
+            suma += (c - '0') * peso;
             peso = (peso == 2) ? 1 : 2;
         }
     }

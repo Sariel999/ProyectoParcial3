@@ -91,7 +91,7 @@ void GeneradorQR::generarQRPDF(const ListaDobleCircular<Titular*>& titulares) {
     }
 
     // Formato para QR con informacion completa
-    string qrData = "MICHIBANK|" + nombre + "|CI:" + cedula + "|" + infoCuentas;
+    string qrData = "MICHIBANK\n|" + nombre + "\n|CI:" + cedula + "\n|" + infoCuentas;
 
     // Generar PDF con QR integrado
     generarPDFConQR(nombre, cedula, infoCuentas, qrData);
@@ -125,9 +125,8 @@ void GeneradorQR::generarPDFConQR(const string& nombre, const string& cedula, co
     if (qr) {
         QR_SIZE = qr->width;
         hasRealQR = true;
-        cout << "\nUsando libqrencode - QR Size: " << QR_SIZE << "x" << QR_SIZE << endl;
     } else {
-        cout << "\nError: libqrencode fallo, usando tamano fijo 21x21" << endl;
+        cout << "\nError: usando tamano fijo 21x21" << endl;
     }
 
     archivo << "%PDF-1.4\n";

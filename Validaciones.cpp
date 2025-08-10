@@ -17,11 +17,11 @@
 
 using namespace std;
 
-int Validaciones::ingresarEntero(char msj[50]) {
+int Validaciones::ingresarEntero(const char* mensaje) {
     char c;
     int i = 0;
     char dato[11];
-    cout << msj << endl;
+    cout << mensaje << endl;
 
     while ((c = getch()) != 13) {
         if (c >= '0' && c <= '9') {
@@ -226,17 +226,29 @@ string Validaciones::ingresarNumeroTelefonico(char msj[50]) {
 
     return string(numero);
 }
-float  Validaciones::ingresarMonto(const char* mensaje) {
-    char cad[20];
+float Validaciones::ingresarMonto(const char* mensaje) {
+    char cad[10];
     char c;
     int i = 0;
     bool tienePunto = false;
     int decimales = 0;
+    int digitosEnteros = 0;
 
     printf("%s", mensaje);
 
     while ((c = _getch()) != 13) { // Enter
         if (c >= '0' && c <= '9') {
+            // Verificar si al agregar este dígito excederíamos el límite
+            char tempCad[10];
+            strncpy(tempCad, cad, i);
+            tempCad[i] = c;
+            tempCad[i + 1] = '\0';
+            double tempMonto = atof(tempCad);
+            
+            if (tempMonto > 10000.0) {
+                continue; // Ignorar el dígito si excede 10000
+            }
+            
             if (tienePunto) {
                 if (decimales < 2) {
                     printf("%c", c);
@@ -244,8 +256,11 @@ float  Validaciones::ingresarMonto(const char* mensaje) {
                     decimales++;
                 }
             } else {
-                printf("%c", c);
-                cad[i++] = c;
+                if (digitosEnteros < 5) { // Máximo 5 dígitos antes del punto
+                    printf("%c", c);
+                    cad[i++] = c;
+                    digitosEnteros++;
+                }
             }
         }
         else if (c == '.' && !tienePunto && i > 0) {
@@ -257,8 +272,10 @@ float  Validaciones::ingresarMonto(const char* mensaje) {
         else if (c == 8 && i > 0) { // Backspace
             if (cad[i - 1] == '.') {
                 tienePunto = false;
-            } else if (tienePunto && decimales > 0) {
+            } else if (tienePunto) {
                 decimales--;
+            } else {
+                digitosEnteros--;
             }
             printf("\b \b");
             i--;
@@ -269,15 +286,11 @@ float  Validaciones::ingresarMonto(const char* mensaje) {
 
     if (strlen(cad) == 0 || cad[0] == '.') {
         printf("\nEntrada invalida.\n");
-        return ingresarMonto(mensaje); // Reintenta
+        system("pause");
+        return ingresarMonto(mensaje);
     }
 
     float monto = atof(cad);
-
-    if (monto > 10000.0f) {
-        printf("\nEl monto no puede ser mayor a 10000.\n");
-        return ingresarMonto(mensaje); // Reintenta
-    }
 
     return monto;
 }
@@ -355,59 +368,87 @@ string Validaciones::ingresarCodigoBak(char msj[50]) {
         }
     } while (true);
 }
-
 string Validaciones::ingresarCorreo(char msj[50]) {
-    char c;
-    int i = 0;
-    char correo[51]; // Máximo 50 caracteres + '\0'
+    string correo;
+    bool esValido = false;
 
     do {
         system("cls");
-        i = 0;
         cout << msj << endl;
+        getline(cin >> ws, correo);
 
-        while ((c = getch()) != 13) { // 13 = ENTER
-            if (isalnum(c) || c == '@' || c == '.' || c == '-' || c == '_') {
-                if (i < 50) {
-                    correo[i++] = c;
-                    cout << c;
+        if (correo.length() < 5) {
+            cout << "\nCorreo demasiado corto. Formato invalido.\n";
+            system("pause");
+            continue;
+        }
+
+        size_t posArroba = correo.find('@');
+        size_t posPunto = correo.rfind('.');
+
+        if (posArroba == string::npos) {
+            cout << "\nCorreo invalido. Debe contener '@'.\n";
+            system("pause");
+            continue;
+        }
+
+        if (posPunto == string::npos) {
+            cout << "\nCorreo invalido. Debe contener '.'.\n";
+            system("pause");
+            continue;
+        }
+
+        if (posArroba == 0 || posArroba == correo.length() - 1) {
+            cout << "\nFormato de correo invalido. '@' en posicion incorrecta.\n";
+            system("pause");
+            continue;
+        }
+
+        if (posPunto < posArroba || posPunto == correo.length() - 1) {
+            cout << "\nFormato de correo invalido. Dominio incorrecto.\n";
+            system("pause");
+            continue;
+        }
+
+        if (posPunto == posArroba + 1) {
+            cout << "\nFormato de correo invalido. Falta dominio.\n";
+            system("pause");
+            continue;
+        }
+
+        // Validar caracteres antes y después del @
+        bool caracteresValidos = true;
+        for (size_t i = 0; i < correo.length(); ++i) {
+            char c = correo[i];
+
+            if (i < posArroba) {
+                // Antes del @: solo letras, números y '_'
+                if (!isalnum(c) && c != '_') {
+                    caracteresValidos = false;
+                    break;
                 }
-            } else if (c == 8 && i > 0) { // Backspace
-                i--;
-                cout << "\b \b";
+            } else if (i > posArroba) {
+                // Después del @: letras, números y '.'
+                if (!isalnum(c) && c != '.') {
+                    caracteresValidos = false;
+                    break;
+                }
             }
         }
-        correo[i] = '\0';
 
-        string correoStr = string(correo);
-
-        // ===== Validaciones adicionales =====
-        size_t arroba = correoStr.find('@');
-        size_t punto = correoStr.find('.', arroba);
-
-        bool tieneSoloUnArroba = (arroba != string::npos) && (correoStr.find('@', arroba + 1) == string::npos);
-        bool puntoDespuesDeArroba = (punto != string::npos && punto > arroba + 1);
-        bool puntoNoAlFinal = (punto != correoStr.length() - 1);
-        bool noEmpiezaNiTerminaConPunto = (correoStr[0] != '.' && correoStr.back() != '.');
-        bool sinPuntosConsecutivos = (correoStr.find("..") == string::npos);
-        bool noHayPuntoJustoAntesDeArroba = (arroba > 0 && correoStr[arroba - 1] != '.');
-        bool noHayPuntoJustoDespuesDeArroba = (arroba < correoStr.length() - 1 && correoStr[arroba + 1] != '.');
-
-        if (!tieneSoloUnArroba ||
-            !puntoDespuesDeArroba ||
-            !puntoNoAlFinal ||
-            !noEmpiezaNiTerminaConPunto ||
-            !sinPuntosConsecutivos ||
-            !noHayPuntoJustoAntesDeArroba ||
-            !noHayPuntoJustoDespuesDeArroba) {
-            cout << "\nCorreo invalido. Formato incorrecto.\n";
+        if (!caracteresValidos) {
+            cout << "\nCorreo invalido. Caracteres no permitidos.\n";
             system("pause");
-        } else {
-            return correoStr;
+            continue;
         }
 
-    } while (true);
+        esValido = true;
+
+    } while (!esValido);
+
+    return correo;
 }
+
 string Validaciones::ingresarTextoLibre(char msj[50]) {
     char c;
     int i = 0;

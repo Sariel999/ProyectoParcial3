@@ -159,29 +159,54 @@ void Backups :: crearBackup (const ListaDobleCircular<Titular*>& titulares) {
         } while (actual != titulares.getCabeza());
     }
     archivo.close();
-    cout << "'"<< nombreArchivo << "'.\n" << endl;
+    cout << "\n'"<< nombreArchivo << "'.\n" << endl;
     system("pause");
 }
 
-bool Backups::restaurarBackup(ListaDobleCircular<Titular*>& titulares, BPlusTreeTitulares& arbolTitulares,const std::string& archivo) {
-    // Elimina todos los titulares actuales
-    
+bool Backups::restaurarBackup(ListaDobleCircular<Titular*>& titulares, 
+                            BPlusTreeTitulares& arbolTitulares,
+                            const std::string& archivo) {
+    // Limpiar titulares existentes con manejo seguro de memoria
     while (!titulares.vacia()) {
         Titular* t = titulares.eliminarPorCabeza();
-        delete t;
+        if (t) {
+            // Limpiar memoria de las cuentas bancarias
+            if (t->getCuentaCorriente()) {
+                delete t->getCuentaCorriente();
+            }
+            
+            // Limpiar cuentas de ahorro
+            ListaDobleCircular<CuentaBancaria*>& cuentasAhorro = t->getCuentasAhorro();
+            while (!cuentasAhorro.vacia()) {
+                CuentaBancaria* cuenta = cuentasAhorro.eliminarPorCabeza();
+                if (cuenta) {
+                    delete cuenta;
+                }
+            }
+            
+            delete t;
+            t = nullptr;
+        }
     }
-    // Carga desde el archivo de backup
-    arbolTitulares=BPlusTreeTitulares();
+
+    // Reinicializar el árbol B+
+    arbolTitulares = BPlusTreeTitulares(3);
     
+    // Cargar desde el archivo de backup
     bool exito = ArchivoBinario::cargarBackup(titulares, archivo);
+    
     if (exito) {
-        arbolTitulares.construirDesdeLista(titulares.getCabeza());
-        std::cout << "\nBackup restaurado correctamente desde '" << archivo << "'.\n" << std::endl;
-        std::cout << "\nARBOL B+ DESPUES DE LA RESTAURACION \n"; 
-        arbolTitulares.imprimir();
+        // Reconstruir el árbol B+ con los nuevos datos
+        if (titulares.getCabeza()) {
+            arbolTitulares.construirDesdeLista(titulares.getCabeza());
+            std::cout << "\nBackup restaurado correctamente desde '" << archivo << "'.\n" << std::endl;
+            std::cout << "\nARBOL B+ DESPUES DE LA RESTAURACION \n"; 
+            arbolTitulares.imprimir();
+        }
     } else {
         std::cout << "\nNo se pudo restaurar el backup desde '" << archivo << "'.\n" << std::endl;
     }
+    
     system("pause");
     return exito;
 }
