@@ -133,15 +133,26 @@ void GestorArchivosBinarios::decifrarArchivoCifrado(const ListaDobleCircular<Tit
     cout << "\n--- DECIFRAR ARCHIVO CIFRADO ---" << endl;
     ifstream archivo("cuentasCifrado.bin", ios::binary);
     if (!archivo) {
-        cout << "\nNo se pudo abrir el archivo cifrado.\n" << endl;
+        cout << "\nNo se pudo abrir el archivo cifrado 'cuentasCifrado.bin'.\n" << endl;
         system("pause");
         return;
     }
     archivo.close();
 
-    int desplazamiento = 3; 
-    descifrarCesarArchivoBinario(std::string("cuentasCifrado.bin"), std::string("cuentasDecifradas.bin"), -desplazamiento);
+    int desplazamiento = 3; // Mismo desplazamiento usado para cifrar
+    cout << "\nDescifrando archivo con desplazamiento: " << desplazamiento << endl;
     
-    cout << "\nArchivo decifrado exitosamente en 'cuentasDecifradas.bin'.\n" << endl;
+    // Usar la funcion de descifrado que toma el desplazamiento positivo
+    descifrarCesarArchivoBinario(std::string("cuentasCifrado.bin"), std::string("cuentasDecifradas.bin"), desplazamiento);
+    
+    // Verificar que se creo el archivo descifrado
+    ifstream verificacion("cuentasDecifradas.bin", ios::binary);
+    if (verificacion) {
+        cout << "\nArchivo decifrado exitosamente en 'cuentasDecifradas.bin'.\n" << endl;
+        verificacion.close();
+    } else {
+        cout << "\nError: No se pudo crear el archivo descifrado.\n" << endl;
+    }
+    
     system("pause");
 }
