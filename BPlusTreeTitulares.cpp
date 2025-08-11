@@ -9,13 +9,14 @@
  * 
  */
 #include "BPlusTreeTitulares.h"
+#include "GestorBusquedaMongo.h"
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include <queue>
 #include <cstring> 
 
-BPlusTreeTitulares::BPlusTreeTitulares(int grado_) : raiz(nullptr), grado(grado_) {}
+BPlusTreeTitulares::BPlusTreeTitulares(int grado_) : raiz(nullptr), grado(grado_), gestorBusquedaMongo(nullptr) {}
 
 BPlusTreeTitulares::~BPlusTreeTitulares() {
     liberarNodo(raiz);
@@ -733,4 +734,110 @@ void BPlusTreeTitulares::graficarArbol() const {
     delete window;
 
     std::cout << "\nVentana de visualizacion cerrada. Regresando al menu...\n" << std::endl;
+}
+
+/**
+ * @brief Configura el gestor de busqueda MongoDB
+ * @param gestorMongo Puntero al gestor de busqueda MongoDB
+ */
+void BPlusTreeTitulares::setGestorBusquedaMongo(GestorBusquedaMongo* gestorMongo) {
+    gestorBusquedaMongo = gestorMongo;
+}
+
+/**
+ * @brief Busca un titular en el arbol B+ con datos actualizados desde MongoDB
+ * @param ci Cedula de identidad del titular a buscar
+ * @return Titular* Puntero al titular encontrado o nullptr
+ */
+Titular* BPlusTreeTitulares::buscarDB(const std::string& ci) const {
+    // Primero intentar obtener datos frescos desde MongoDB
+    if (gestorBusquedaMongo) {
+        std::cout << "Buscando titular en MongoDB..." << std::endl;
+        Titular* titularFresco = gestorBusquedaMongo->obtenerTitularFresco(ci);
+        
+        if (titularFresco) {
+            std::cout << "Titular encontrado con datos actualizados desde MongoDB." << std::endl;
+            return titularFresco;
+        } else {
+            std::cout << "Titular no encontrado en MongoDB. Buscando en arbol local..." << std::endl;
+        }
+    }
+    
+    // Fallback: buscar en el arbol local
+    Titular* titularLocal = buscar(ci);
+    if (titularLocal) {
+        std::cout << "Titular encontrado en arbol local." << std::endl;
+    } else {
+        std::cout << "Titular no encontrado." << std::endl;
+    }
+    
+    return titularLocal;
+}
+
+/**
+ * @brief Elimina un titular del arbol B+ con verificacion MongoDB
+ * @param ci Cedula de identidad del titular a eliminar
+ */
+void BPlusTreeTitulares::eliminarDB(const std::string& ci) {
+    // Verificar si el titular existe en MongoDB primero
+    if (gestorBusquedaMongo) {
+        std::cout << "Verificando existencia del titular en MongoDB..." << std::endl;
+        Titular* titularVerificacion = gestorBusquedaMongo->obtenerTitularFresco(ci);
+        
+        if (titularVerificacion) {
+            std::cout << "Titular encontrado en MongoDB. Procediendo con eliminacion local..." << std::endl;
+            // Eliminar del arbol local
+            eliminar(ci);
+            std::cout << "Titular eliminado del arbol local." << std::endl;
+            std::cout << "NOTA: Para eliminar completamente, use las funciones de gestion de base de datos." << std::endl;
+            return;
+        } else {
+            std::cout << "Titular no encontrado en MongoDB." << std::endl;
+        }
+    }
+    
+    // Verificar en arbol local como fallback
+    Titular* titularLocal = buscar(ci);
+    if (titularLocal) {
+        std::cout << "Titular encontrado en arbol local. Eliminando..." << std::endl;
+        eliminar(ci);
+        std::cout << "Titular eliminado del arbol local." << std::endl;
+    } else {
+        std::cout << "Titular no encontrado en el sistema." << std::endl;
+    }
+}
+
+/**
+ * @brief Grafica el arbol B+ construido con todos los titulares desde MongoDB
+ */
+void BPlusTreeTitulares::graficarArbolDB() const {
+    if (gestorBusquedaMongo) {
+        std::cout << "Obteniendo todos los titulares desde MongoDB para graficar el arbol..." << std::endl;
+        std::vector<Titular*> titularesCompletos = gestorBusquedaMongo->obtenerTodosTitularesCompletos();
+        
+        if (!titularesCompletos.empty()) {
+            std::cout << "Construyendo arbol B+ temporal con " << titularesCompletos.size() << " titulares desde MongoDB..." << std::endl;
+            
+            // Crear un arbol temporal con los datos de MongoDB
+            BPlusTreeTitulares arbolTemporal(grado);
+            
+            // Insertar todos los titulares de MongoDB en el arbol temporal
+            for (Titular* titular : titularesCompletos) {
+                arbolTemporal.insertar(titular->getPersona().getCI(), titular);
+            }
+            
+            std::cout << "Graficando arbol B+ con datos actualizados desde MongoDB..." << std::endl;
+            arbolTemporal.graficarArbol();
+            
+            std::cout << "Visualizacion completada." << std::endl;
+            return;
+        } else {
+            std::cout << "No se encontraron titulares en MongoDB. Graficando arbol local..." << std::endl;
+        }
+    } else {
+        std::cout << "No hay conexion a MongoDB. Graficando arbol local..." << std::endl;
+    }
+    
+    // Fallback: graficar el arbol local
+    graficarArbol();
 }

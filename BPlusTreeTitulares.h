@@ -16,10 +16,14 @@
 #include "ListaDobleCircular.h"
 #include <SFML/Graphics.hpp>
 
+// Forward declaration para evitar dependencias circulares
+class GestorBusquedaMongo;
+
 class BPlusTreeTitulares {
 private:
     NodoBPlus* raiz;
     int grado;
+    GestorBusquedaMongo* gestorBusquedaMongo;
 
     void liberarNodo(NodoBPlus* nodo);
     void insertarEnNodo(NodoBPlus* nodo, const std::string& ci, Titular* titular, 
@@ -42,6 +46,14 @@ public:
     void imprimirArbolBPlus() const;
     void construirDesdeLista(NodoDoble<Titular*>* cabeza);
     void graficarArbol() const;
+    
+    // Configuracion MongoDB
+    void setGestorBusquedaMongo(GestorBusquedaMongo* gestorMongo);
+    
+    // Funciones con integracion MongoDB
+    Titular* buscarDB(const std::string& ci) const;
+    void eliminarDB(const std::string& ci);
+    void graficarArbolDB() const;
 };
 
 #endif

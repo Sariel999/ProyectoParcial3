@@ -32,6 +32,9 @@ Sistema::Sistema(): arbolTitulares(3), gestorBusquedaMongo(gestorConexion), gest
     
     // Configurar gestor MongoDB en MenuBusquedasBinarias
     menuBusquedasBinarias.setGestorBusquedaMongo(&gestorBusquedaMongo);
+    
+    // Configurar gestor MongoDB en BPlusTreeTitulares
+    arbolTitulares.setGestorBusquedaMongo(&gestorBusquedaMongo);
 }
 /**
  * @brief Destroy the Sistema:: Sistema object
@@ -130,7 +133,7 @@ void Sistema::menuArbol(){
                     std::cout << "\n" << std::endl;
                     std::cout << "\n--- BUSCAR EN ARBOL B+ ---" << std::endl;
                     std::string ci = val.ingresarCedula((char*)"\nIngrese CI del titular a buscar: ");
-                    Titular* titularEncontrado = arbolTitulares.buscar(ci); // arbolTitulares is your B+ tree
+                    Titular* titularEncontrado = arbolTitulares.buscarDB(ci); // Usar funcion con MongoDB
                     if (!titularEncontrado) {
                         std::cout << "\nTitular no encontrado." << std::endl;
                         break;
@@ -161,45 +164,28 @@ void Sistema::menuArbol(){
             }  
             case 2: {
                 string ciEliminar = val.ingresarCedula((char*)"\nIngrese el CI del titular para eliminar: ");
-                std::cout << "\nBuscando titular para eliminar...\n";
-                Titular* titularEncontrado = arbolTitulares.buscar(ciEliminar);
-                if (titularEncontrado) {
-                    // Eliminar del árbol B+
-                    arbolTitulares.eliminar(ciEliminar);
-                    // Eliminar de la lista de titulares
-                    NodoDoble<Titular*>* actual = titulares.getCabeza();
-                    if (actual) {
-                        do {
-                            if (actual->dato->getPersona().getCI() == ciEliminar) {
-                                titulares.eliminar(actual);
-                                delete actual->dato; // Liberar memoria del titular
-                                break;
-                            }
-                            actual = actual->siguiente;
-                        } while (actual != titulares.getCabeza());
-                    }
-                    std::cout << "\nTitular eliminado exitosamente.\n";
-                    // Actualizar contadores de sucursales
-                    actualizarContadoresSucursales();
-                    // Crear backup
-                    Backups backup;
-                    backup.crearBackup(titulares);
-                    // Imprimir árbol para verificar
-                    std::cout << "\nArbol despues de la eliminacion:\n";
-                    arbolTitulares.imprimir();
-                } else {
-                    std::cout << "\nTitular no encontrado." << std::endl;
-                }
+                std::cout << "\nEliminando titular con verificacion MongoDB...\n";
+                // Usar la nueva funcion que verifica en MongoDB
+                arbolTitulares.eliminarDB(ciEliminar);
+                
+                // Actualizar contadores de sucursales
+                actualizarContadoresSucursales();
+                // Crear backup
+                Backups backup;
+                backup.crearBackup(titulares);
+                // Imprimir árbol para verificar
+                std::cout << "\nArbol despues de la eliminacion:\n";
+                arbolTitulares.imprimir();
                 std::cout.flush();
                 system("pause");
                 break;
             }
             case 3: {
                 system("cls");
-                std::cout << "\n--- GRAFICAR ARBOL B+ (REPRESENTACION TEXTUAL) ---" << std::endl;
-                std::cout << "\nMostrando la estructura del Arbol B+ con niveles:\n";
+                std::cout << "\n--- GRAFICAR ARBOL B+ CON DATOS MONGODB ---" << std::endl;
+                std::cout << "\nMostrando la estructura del Arbol B+ con datos actualizados desde MongoDB:\n";
                 arbolTitulares.imprimirArbolBPlus();
-                arbolTitulares.graficarArbol();
+                arbolTitulares.graficarArbolDB(); // Usar la nueva funcion con MongoDB
                 
                 system("pause");
                 break;
