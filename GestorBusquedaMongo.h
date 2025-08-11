@@ -36,6 +36,13 @@ public:
     ~GestorBusquedaMongo();
 
     /**
+     * @brief Obtiene un titular completo directamente desde MongoDB (datos frescos)
+     * @param ci Cedula de identidad a buscar
+     * @return Titular* Puntero al titular con datos frescos o nullptr si no existe
+     */
+    Titular* obtenerTitularFresco(const std::string& ci);
+
+    /**
      * @brief Busca un titular por CI, primero en memoria local y luego en MongoDB
      * Si lo encuentra en MongoDB, lo carga automaticamente en la lista local
      * @param titulares Lista de titulares en memoria

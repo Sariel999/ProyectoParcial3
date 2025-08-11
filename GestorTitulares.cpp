@@ -151,14 +151,19 @@ void GestorTitulares::crearCuenta(ListaDobleCircular<Titular*>& titulares, Lista
     cout << "\n--- CREAR CUENTA ---\n" << endl;
     
     bool verificarBD = gestorConexion.estaConectado();
+    if (!verificarBD) {
+        cout << "\nNo hay conexion con MongoDB. No se pueden crear cuentas." << endl;
+        system("pause");
+        return;
+    }
     
     string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular: ");
-    Titular* titular = gestorBusqueda.buscarTitularConCarga(titulares, cedula);
+    
+    // SIEMPRE obtener datos frescos desde MongoDB
+    Titular* titular = gestorBusqueda.obtenerTitularFresco(cedula);
     
     if (!titular) {
         cout << "Titular no encontrado en la base de datos." << endl;
-        cout << "Razon: " << gestorConexion.obtenerUltimoError() << endl;
-        
         cout << "\nOpciones:" << endl;
         cout << "1. Verificar que el titular exista en MongoDB" << endl;
         cout << "2. Verificar la conexion a la base de datos" << endl;
@@ -249,6 +254,10 @@ void GestorTitulares::crearCuenta(ListaDobleCircular<Titular*>& titulares, Lista
 
     Backups backup;
     backup.crearBackup(titulares);
+    
+    // Limpiar memoria del titular fresco
+    delete titular;
+    
     system("pause");
 }
 

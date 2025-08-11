@@ -51,20 +51,44 @@ void CuentaBancaria::setTipoCuenta(const std::string& newTipoCuenta) {
 void CuentaBancaria::agregarMovimiento(Movimiento* mov) {
     if (mov == nullptr) return;
 
+    std::cout << "DEBUG CuentaBancaria: Agregando movimiento..." << std::endl;
+    std::cout << "  - Saldo actual: $" << saldo << std::endl;
+    std::cout << "  - Monto: $" << mov->getMonto() << std::endl;
+    std::cout << "  - Tipo: " << (mov->getTipo() ? "Depósito" : "Retiro") << std::endl;
+
     if (mov->getTipo()) {
         // Depósito
         saldo += mov->getMonto();
+        std::cout << "  - Nuevo saldo después de depósito: $" << saldo << std::endl;
     } else {
         // Retiro
         if (mov->getMonto() <= saldo) {
             saldo -= mov->getMonto();
+            std::cout << "  - Nuevo saldo después de retiro: $" << saldo << std::endl;
         } else {
-            std::cout << "Fondos insuficientes para realizar el retiro.\n";
+            std::cout << "ERROR: Fondos insuficientes para realizar el retiro." << std::endl;
+            std::cout << "  - Saldo disponible: $" << saldo << std::endl;
+            std::cout << "  - Monto solicitado: $" << mov->getMonto() << std::endl;
             return;
         }
     }
 
     movimientos.insertar(mov);
+    std::cout << "DEBUG CuentaBancaria: Movimiento agregado exitosamente" << std::endl;
+}
+
+void CuentaBancaria::cargarMovimientoSinRecalcular(Movimiento* mov) {
+    if (mov == nullptr) return;
+
+    std::cout << "DEBUG CuentaBancaria: Cargando movimiento desde BD (sin recalcular saldo)..." << std::endl;
+    std::cout << "  - Monto: $" << mov->getMonto() << std::endl;
+    std::cout << "  - Tipo: " << (mov->getTipo() ? "Depósito" : "Retiro") << std::endl;
+    std::cout << "  - Saldo permanece: $" << saldo << " (no se recalcula)" << std::endl;
+
+    // Solo agregamos el movimiento a la lista, SIN modificar el saldo
+    // porque el saldo ya viene correcto de MongoDB
+    movimientos.insertar(mov);
+    std::cout << "DEBUG CuentaBancaria: Movimiento cargado exitosamente sin recalcular" << std::endl;
 }
 
 ListaDobleCircular<Movimiento*>& CuentaBancaria::getMovimientos() {

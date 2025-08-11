@@ -384,6 +384,18 @@ bool GestorConexion::sincronizarTitularCompleto(const Titular* titular) {
     ListaDobleCircular<CuentaBancaria*>& cuentasAhorro = const_cast<Titular*>(titular)->getCuentasAhorro();
     NodoDoble<CuentaBancaria*>* nodo = cuentasAhorro.getCabeza();
     bool primera = true;
+    
+    // Debug: Contar cuentas de ahorro antes de serializar
+    int contadorCuentasAhorro = 0;
+    if (nodo != nullptr) {
+        NodoDoble<CuentaBancaria*>* temp = nodo;
+        do {
+            contadorCuentasAhorro++;
+            temp = temp->siguiente;
+        } while (temp != nodo);
+    }
+    std::cout << "DEBUG: Serializando " << contadorCuentasAhorro << " cuentas de ahorro" << std::endl;
+    
     if (nodo != nullptr) {
         do {
             if (!primera) json << ",";
@@ -394,6 +406,10 @@ bool GestorConexion::sincronizarTitularCompleto(const Titular* titular) {
             json << "\"fechaCreacion\":\"" << nodo->dato->getFechaCre().getDia() << "/"
                  << nodo->dato->getFechaCre().getMes() << "/"
                  << nodo->dato->getFechaCre().getAnio() << "\",";
+            
+            // Debug: Info de la cuenta que se está serializando
+            std::cout << "DEBUG: Serializando cuenta ahorro ID: " << nodo->dato->getID() 
+                      << ", Saldo: " << nodo->dato->getSaldo() << std::endl;
             
             // Agregar movimientos de esta cuenta de ahorro
             json << "\"movimientos\":[";
@@ -582,47 +598,90 @@ Titular* GestorConexion::parsearTitularCompletoDesdeJSON(const std::string& json
             }
         }
         
-        // Buscar y parsear cuentas de ahorro
-        size_t ahorroPos = json.find("\"cuentasAhorro\": [");
+        // Buscar y parsear cuentas de ahorro - intentar diferentes formatos
+        size_t ahorroPos = json.find("\"cuentasAhorro\":");
         if (ahorroPos != std::string::npos) {
-            ahorroPos += 18; // Longitud de "cuentasAhorro": [
-            size_t ahorroEnd = json.find("]", ahorroPos);
-            if (ahorroEnd != std::string::npos) {
-                std::string cuentasJson = json.substr(ahorroPos, ahorroEnd - ahorroPos);
+            // Encontrar el inicio del array [
+            size_t arrayStart = json.find("[", ahorroPos);
+            if (arrayStart != std::string::npos) {
+                // Contar brackets y braces para encontrar el final correcto del array
+                int bracketCount = 0;
+                int braceCount = 0;
+                size_t ahorroEnd = arrayStart;
                 
-                // Parsear cada cuenta de ahorro
-                size_t pos = 0;
-                while (pos < cuentasJson.length()) {
-                    size_t inicio = cuentasJson.find("{", pos);
-                    if (inicio == std::string::npos) break;
+                for (size_t i = arrayStart; i < json.length(); i++) {
+                    if (json[i] == '[') {
+                        bracketCount++;
+                    } else if (json[i] == ']') {
+                        bracketCount--;
+                        if (bracketCount == 0) {
+                            ahorroEnd = i;
+                            break;
+                        }
+                    } else if (json[i] == '{') {
+                        braceCount++;
+                    } else if (json[i] == '}') {
+                        braceCount--;
+                    }
+                }
+                
+                if (ahorroEnd > arrayStart) {
+                    // Extraer el contenido del array (sin los brackets externos)
+                    std::string cuentasJson = json.substr(arrayStart + 1, ahorroEnd - arrayStart - 1);
+                
+                    std::cout << "DEBUG: Parseando cuentas de ahorro. JSON extraído:" << std::endl;
+                    std::cout << "'" << cuentasJson << "'" << std::endl;
                     
-                    // Encontrar el final del objeto JSON
-                    int braceCount = 0;
-                    size_t fin = inicio;
-                    for (size_t i = inicio; i < cuentasJson.length(); i++) {
-                        if (cuentasJson[i] == '{') braceCount++;
-                        else if (cuentasJson[i] == '}') {
-                            braceCount--;
-                            if (braceCount == 0) {
-                                fin = i;
-                                break;
+                    // Parsear cada cuenta de ahorro
+                    size_t pos = 0;
+                    int cuentasParsedas = 0;
+                    while (pos < cuentasJson.length()) {
+                        size_t inicio = cuentasJson.find("{", pos);
+                        if (inicio == std::string::npos) break;
+                        
+                        // Encontrar el final del objeto JSON
+                        int braceCount = 0;
+                        size_t fin = inicio;
+                        for (size_t i = inicio; i < cuentasJson.length(); i++) {
+                            if (cuentasJson[i] == '{') braceCount++;
+                            else if (cuentasJson[i] == '}') {
+                                braceCount--;
+                                if (braceCount == 0) {
+                                    fin = i;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    
-                    if (fin > inicio) {
-                        std::string cuentaJson = cuentasJson.substr(inicio, fin - inicio + 1);
-                        CuentaBancaria* cuenta = parsearCuentaDesdeJSON(cuentaJson);
-                        if (cuenta) {
-                            titular->agregarCuentaAhorro(cuenta);
-                            // Buscar movimientos para esta cuenta
-                            parsearMovimientosParaCuenta(cuentaJson, cuenta);
+                        
+                        if (fin > inicio) {
+                            std::string cuentaJson = cuentasJson.substr(inicio, fin - inicio + 1);
+                            std::cout << "DEBUG: Parseando cuenta ahorro " << (cuentasParsedas + 1) << ": " << cuentaJson << std::endl;
+                            
+                            CuentaBancaria* cuenta = parsearCuentaDesdeJSON(cuentaJson);
+                            if (cuenta) {
+                                std::cout << "DEBUG: Cuenta parseada exitosamente. ID: " << cuenta->getID() 
+                                          << ", Saldo: " << cuenta->getSaldo() << std::endl;
+                                titular->agregarCuentaAhorro(cuenta);
+                                // Buscar movimientos para esta cuenta
+                                parsearMovimientosParaCuenta(cuentaJson, cuenta);
+                                cuentasParsedas++;
+                            } else {
+                                std::cout << "DEBUG: Error al parsear cuenta ahorro" << std::endl;
+                            }
                         }
+                        
+                        pos = fin + 1;
                     }
                     
-                    pos = fin + 1;
+                    std::cout << "DEBUG: Total de cuentas de ahorro parseadas: " << cuentasParsedas << std::endl;
+                } else {
+                    std::cout << "DEBUG: No se pudo encontrar el final del array de cuentas de ahorro" << std::endl;
                 }
+            } else {
+                std::cout << "DEBUG: No se encontró el inicio del array de cuentas de ahorro" << std::endl;
             }
+        } else {
+            std::cout << "DEBUG: No se encontró el campo 'cuentasAhorro' en el JSON" << std::endl;
         }
         
         // Debug: Mostrar resumen de movimientos cargados
@@ -864,7 +923,7 @@ void GestorConexion::parsearMovimientosParaCuenta(const std::string& json, Cuent
                         std::cout << "DEBUG: Parseando movimiento " << (contador + 1) << ": " << movJson << std::endl;
                         Movimiento* movimiento = parsearMovimientoDesdeJSON(movJson);
                         if (movimiento) {
-                            cuenta->agregarMovimiento(movimiento);
+                            cuenta->cargarMovimientoSinRecalcular(movimiento);  // ✅ Usar método que NO recalcula
                             contador++;
                             std::cout << "DEBUG: Movimiento cargado exitosamente - Monto: $" << movimiento->getMonto() 
                                       << " Tipo: " << (movimiento->getTipo() ? "Deposito" : "Retiro") << std::endl;

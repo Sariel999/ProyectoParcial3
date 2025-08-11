@@ -34,6 +34,7 @@ public:
     void setTipoCuenta(const std::string& newTipoCuenta);
 
     void agregarMovimiento(Movimiento* mov);
+    void cargarMovimientoSinRecalcular(Movimiento* mov);  // Nuevo método para cargar desde BD
     ListaDobleCircular<Movimiento*>& getMovimientos();
     const ListaDobleCircular<Movimiento*>& getMovimientos() const;
 

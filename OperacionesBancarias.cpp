@@ -33,7 +33,9 @@ OperacionesBancarias::~OperacionesBancarias() {
 Titular* OperacionesBancarias::buscarTitularPorCI(const ListaDobleCircular<Titular*>& titulares, const std::string& ci) {
     // Usar el gestor de busqueda para busqueda solo local
     return gestorBusqueda.buscarTitularLocal(titulares, ci);
-}/**
+}
+
+/**
  * @brief Permite al usuario seleccionar una cuenta del titular mediante numero de cuenta
  * 
  * @param titular Titular propietario de las cuentas
@@ -66,7 +68,7 @@ CuentaBancaria* OperacionesBancarias::seleccionarCuenta(Titular* titular) {
     string numeroCuenta;
     bool cuentaValida = false;
     /* No se puede cambia a for-each porque no recorre una estructura de datos
-    solo esta repitiendo un proceso para validar el numero de cuenta*/
+    solo esta repitiendo un proceso para validar el numero de cuenta*/
     do {
         numeroCuenta = val.ingresarNumeros((char*)"Ingrese numero de cuenta: ");
         
@@ -109,20 +111,21 @@ CuentaBancaria* OperacionesBancarias::seleccionarCuenta(Titular* titular) {
  * @param titulares Lista de titulares del sistema
  */
 void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titulares) {
-    if (titulares.vacia()) {
-        system("cls");
-        cout << "\nNo hay titulares registrados.\n" << endl;
-        system("pause");
-        return;
-    }
     system("cls");
     cout << "\n--- REALIZAR DEPOSITO ---" << endl;
     
-    // Verificar conexión con MongoDB
+    // Verificar conexion con MongoDB
     bool verificarBD = gestorConexion.estaConectado();
+    if (!verificarBD) {
+        cout << "\nNo hay conexion con MongoDB. No se pueden realizar operaciones." << endl;
+        system("pause");
+        return;
+    }
     
     string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular: ");
-    Titular* titular = gestorBusqueda.buscarTitularConCarga(titulares, cedula);
+    
+    // SIEMPRE obtener datos frescos desde MongoDB
+    Titular* titular = gestorBusqueda.obtenerTitularFresco(cedula);
     if (!titular) {
         cout << "\nTitular no encontrado." << endl;
         system("pause");
@@ -171,6 +174,7 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
     if (!cuenta) {
         cout << "\nNo se pudo seleccionar una cuenta." << endl;
         system("pause");
+        delete titular;
         return;
     }
     
@@ -178,17 +182,20 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
     if (monto <= 0) {
         cout << "\nEl monto debe ser mayor a 0." << endl;
         system("pause");
+        delete titular;
         return;
     }
     
     if (monto < 10.0) {
         cout << "\nEl monto minimo de deposito es $10." << endl;
         system("pause");
+        delete titular;
         return;
     }
     if (monto > 10000.0) {
         cout << "\nEl monto maximo de deposito es $10,000." << endl;
         system("pause");
+        delete titular;
         return;
     }
     
@@ -232,6 +239,10 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
     
     Backups backup;
     backup.crearBackup(titulares);
+    
+    // Limpiar memoria del titular fresco
+    delete titular;
+    
     system("pause");
 }
 
@@ -241,20 +252,21 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
  * @param titulares Lista de titulares del sistema
  */
 void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulares) {
-    if (titulares.vacia()) {
-        system("cls");
-        cout << "\nNo hay titulares registrados.\n" << endl;
-        system("pause");
-        return;
-    }
     system("cls");
     cout << "\n--- REALIZAR RETIRO ---" << endl;
     
-    // Verificar conexión con MongoDB
+    // Verificar conexion con MongoDB
     bool verificarBD = gestorConexion.estaConectado();
+    if (!verificarBD) {
+        cout << "\nNo hay conexion con MongoDB. No se pueden realizar operaciones." << endl;
+        system("pause");
+        return;
+    }
     
     string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular: ");
-    Titular* titular = gestorBusqueda.buscarTitularConCarga(titulares, cedula);
+    
+    // SIEMPRE obtener datos frescos desde MongoDB
+    Titular* titular = gestorBusqueda.obtenerTitularFresco(cedula);
     if (!titular) {
         cout << "\nTitular no encontrado." << endl;
         system("pause");
@@ -303,6 +315,7 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
     if (!cuenta) {
         cout << "\nNo se pudo seleccionar una cuenta." << endl;
         system("pause");
+        delete titular;
         return;
     }
     
@@ -312,21 +325,27 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
     if (monto <= 0) {
         cout << "\nEl monto debe ser mayor a 0." << endl;
         system("pause");
+        delete titular;
         return;
     }
     
     if (monto < 10.0) {
         cout << "\nEl monto minimo de retiro es $10." << endl;
         system("pause");
+        delete titular;
         return;
     }
     
     // Guardar saldo anterior para verificación y mostrar información
     float saldoAnterior = cuenta->getSaldo();
     
+    cout << "DEBUG: Saldo antes del retiro: $" << saldoAnterior << endl;
+    cout << "DEBUG: Monto a retirar: $" << monto << endl;
+    
     if (saldoAnterior < monto) {
         cout << "\nSaldo insuficiente para realizar el retiro." << endl;
         system("pause");
+        delete titular;
         return;
     }
     
@@ -336,8 +355,12 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
         numMov = cuenta->getMovimientos().getCabeza()->anterior->dato->getNumeroMovimiento() + 1;
     }
     
+    cout << "DEBUG: Creando movimiento de retiro..." << endl;
     Movimiento* mov = new Movimiento(monto, false, numMov);
+    
+    cout << "DEBUG: Saldo antes de agregarMovimiento: $" << cuenta->getSaldo() << endl;
     cuenta->agregarMovimiento(mov);  // Ya actualiza el saldo
+    cout << "DEBUG: Saldo después de agregarMovimiento: $" << cuenta->getSaldo() << endl;
     
     // Sincronizar con MongoDB
     bool exitoMongo = true;
@@ -367,6 +390,10 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
     
     Backups backup;
     backup.crearBackup(titulares);
+    
+    // Limpiar memoria del titular fresco
+    delete titular;
+    
     system("pause");
 }
 

@@ -20,6 +20,27 @@ GestorBusquedaMongo::GestorBusquedaMongo(GestorConexion& gestor) : gestorConexio
 GestorBusquedaMongo::~GestorBusquedaMongo() {
 }
 
+Titular* GestorBusquedaMongo::obtenerTitularFresco(const std::string& ci) {
+    // Siempre obtener datos frescos directamente desde MongoDB
+    if (!gestorConexion.estaConectado()) {
+        cout << "No hay conexion a MongoDB." << endl;
+        return nullptr;
+    }
+    
+    cout << "Obteniendo datos frescos desde MongoDB..." << endl;
+    
+    // Buscar titular en MongoDB
+    Titular* titularFresco = gestorConexion.buscarTitularEnBD(ci);
+    
+    if (titularFresco) {
+        cout << "Titular encontrado con datos actualizados." << endl;
+        return titularFresco;
+    } else {
+        cout << "Titular no encontrado en base de datos." << endl;
+        return nullptr;
+    }
+}
+
 Titular* GestorBusquedaMongo::buscarTitularConCarga(ListaDobleCircular<Titular*>& titulares, const std::string& ci) {
     // Primero buscar en memoria local
     Titular* titular = buscarTitularLocal(titulares, ci);
