@@ -600,7 +600,7 @@ void GestorBusquedas::buscarPersonalizada(GestorBusquedaMongo& gestorMongo) {
         return;
     }
     
-    string criterio = val.ingresarCadena((char*)"Ingrese criterio de busqueda (nombre, apellido, CI, telefono, correo, ID cuenta, monto, etc.):");
+    string criterio = val.ingresarTextoLibre((char*)"Ingrese criterio de busqueda (nombre, apellido, CI, telefono, correo, ID cuenta, monto, etc.):");
     
     if (criterio.empty()) {
         cout << "Error: El criterio de busqueda no puede estar vacio." << endl;

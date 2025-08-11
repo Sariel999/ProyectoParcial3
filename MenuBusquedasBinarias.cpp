@@ -253,6 +253,15 @@ void MenuBusquedasBinarias::buscarDepositoMayorIgualMongoDB(const ListaDobleCirc
         cout << "Titular no encontrado.\n"; 
         system("pause"); 
         return;
+    } 
+    bool tieneCuentaCorriente = (titular->getCuentaCorriente() != nullptr);
+    bool tieneCuentasAhorro = !titular->getCuentasAhorro().vacia();
+    
+    if (!tieneCuentaCorriente && !tieneCuentasAhorro) {
+        cout << "\nEl titular no tiene ninguna cuenta bancaria creada.\n";
+        cout << "Debe crear al menos una cuenta corriente o de ahorro para realizar esta operacion.\n";
+        system("pause");
+        return;
     }
     
     string tipo = val.ingresarCadena((char*)"\nTipo de cuenta (Corriente/Ahorro):");

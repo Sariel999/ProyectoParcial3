@@ -119,14 +119,13 @@ void Sistema::menuPrincipal() {
 void Sistema::menuArbol(){
     const char* opciones[] = {
         "Buscar en Arbol B+",
-        "Eliminar en Arbol B+",
         "Graficar Arbol B+",
         "Regresar al menu principal"
     };
     Menu menu;
     int opcion;
     do {
-        opcion = menu.ingresarMenu("Arbol B+", opciones, 4);
+        opcion = menu.ingresarMenu("Arbol B+", opciones, 3);
         switch(opcion) {
             case 1:{
                     system("cls");
@@ -163,24 +162,6 @@ void Sistema::menuArbol(){
                 break;
             }  
             case 2: {
-                string ciEliminar = val.ingresarCedula((char*)"\nIngrese el CI del titular para eliminar: ");
-                std::cout << "\nEliminando titular con verificacion MongoDB...\n";
-                // Usar la nueva funcion que verifica en MongoDB
-                arbolTitulares.eliminarDB(ciEliminar);
-                
-                // Actualizar contadores de sucursales
-                actualizarContadoresSucursales();
-                // Crear backup
-                Backups backup;
-                backup.crearBackup(titulares);
-                // Imprimir árbol para verificar
-                std::cout << "\nArbol despues de la eliminacion:\n";
-                arbolTitulares.imprimir();
-                std::cout.flush();
-                system("pause");
-                break;
-            }
-            case 3: {
                 system("cls");
                 std::cout << "\n--- GRAFICAR ARBOL B+ CON DATOS MONGODB ---" << std::endl;
                 std::cout << "\nMostrando la estructura del Arbol B+ con datos actualizados desde MongoDB:\n";
@@ -190,10 +171,10 @@ void Sistema::menuArbol(){
                 system("pause");
                 break;
             }
-            case 4: cout << "\nRegresando al menu principal...\n" << endl; break;
+            case 3: cout << "\nRegresando al menu principal...\n" << endl; break;
             default: cout << "\nOpcion invalida." << endl; system("pause"); break;
         }
-    } while(opcion != 4);
+    } while(opcion != 3);
 }
 
 void Sistema::verificarIntegridadArchivo() {
