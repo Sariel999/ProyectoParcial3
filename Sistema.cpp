@@ -29,6 +29,9 @@ Sistema::Sistema(): arbolTitulares(3), gestorBusquedaMongo(gestorConexion), gest
     
     // Configurar gestor MongoDB en GestorArchivosBinarios
     gestorArchivosBinarios.setGestorBusquedaMongo(&gestorBusquedaMongo);
+    
+    // Configurar gestor MongoDB en MenuBusquedasBinarias
+    menuBusquedasBinarias.setGestorBusquedaMongo(&gestorBusquedaMongo);
 }
 /**
  * @brief Destroy the Sistema:: Sistema object
@@ -447,19 +450,19 @@ void Sistema::menuBB() {
         opcion = menu.ingresarMenu("BUSQUEDAS BINARIAS", opciones, 6);
         switch(opcion) {
             case 1: {
-                menuBusquedasBinarias.buscarDepositoMayorIgual(titulares);
+                menuBusquedasBinarias.buscarDepositoMayorIgualMongoDB(titulares);
                 break;
             }
             case 2: {
-                menuBusquedasBinarias.calcularDepositoMinimoMeta(titulares);
+                menuBusquedasBinarias.calcularDepositoMinimoMetaMongoDB(titulares);
                 break;
             }
             case 3: {
-                menuBusquedasBinarias.buscarTitularPorCI(titulares);
+                menuBusquedasBinarias.buscarTitularPorCIMongoDB(titulares);
                 break;
             }
             case 4: {
-                menuBusquedasBinarias.buscarTitularPorAnioNacimiento(titulares);
+                menuBusquedasBinarias.buscarTitularPorAnioNacimientoMongoDB(titulares);
                 break;
             }
             case 5: {
