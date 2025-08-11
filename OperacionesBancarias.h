@@ -18,13 +18,19 @@
 #include "Movimiento.h"
 #include "Validaciones.h"
 #include "Backups.h"
+#include "GestorConexion.h"
+#include "GestorBusquedaMongo.h"
+#include <sstream>
+#include <iomanip>
 
 class OperacionesBancarias {
 private:
     Validaciones val;
+    GestorConexion& gestorConexion;
+    GestorBusquedaMongo gestorBusqueda;
     
 public:
-    OperacionesBancarias();
+    OperacionesBancarias(GestorConexion& gestor);
     ~OperacionesBancarias();
     
     // OPERACIONES BANCARIAS
@@ -34,6 +40,13 @@ public:
     // FUNCIONES AUXILIARES
     Titular* buscarTitularPorCI(const ListaDobleCircular<Titular*>& titulares, const std::string& ci);
     CuentaBancaria* seleccionarCuenta(Titular* titular);
+    
+    // GESTION DE CONEXION MONGODB
+    void configurarModoServidor();
+    void configurarModoCliente();
+    bool estaConectadoMongoDB() const;
+    std::string generarJSONTitularCompleto(const Titular* titular);
+    void sincronizarTitularCompleto(const Titular* titular);
 };
 
 #endif

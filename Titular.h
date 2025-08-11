@@ -35,5 +35,6 @@ public:
     void agregarCuentaAhorro(CuentaBancaria* cuenta);
     void mostrarCuentasAhorro() const;
     ListaDobleCircular<CuentaBancaria*>& getCuentasAhorro();
+    const ListaDobleCircular<CuentaBancaria*>& getCuentasAhorro() const;
 };
 #endif

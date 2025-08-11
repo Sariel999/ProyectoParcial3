@@ -24,6 +24,7 @@
 #include "GestorArchivosBinarios.h"
 #include "GestorBusquedas.h"
 #include "MenuBusquedasBinarias.h"
+#include "GestorConexion.h"
 #include <vector>
 #include <string>
 
@@ -35,6 +36,7 @@ private:
     ListaSucursales listaSucursales;
     TablaHash hashes;
     GeneradorQR generadorQR;
+    GestorConexion gestorConexion;
     GestorTitulares gestorTitulares;
     OperacionesBancarias operacionesBancarias;
     GestorArchivos gestorArchivos;
@@ -50,6 +52,10 @@ public:
     ~Sistema();
 
     void menuPrincipal();
+    void menuConexion();
+    void configurarModoServidor();
+    void configurarModoCliente();
+    void menuChat();
     void registrarTitular();
     void crearCuenta();
     void realizarDeposito();
@@ -67,6 +73,10 @@ public:
     void guardarTitularesEnTxt();
     void verificarIntegridadArchivo();
     void mostrarTablaHash();
+
+private:
+    std::string generarJSONTitularCompleto(const Titular* titular);
+    void sincronizarTitularCompleto(const Titular* titular);
 
 };
 

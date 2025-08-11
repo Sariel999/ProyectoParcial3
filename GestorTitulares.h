@@ -19,13 +19,19 @@
 #include "Validaciones.h"
 #include "ValidacionFecha.h"
 #include "Backups.h"
+#include "GestorConexion.h"
+#include "GestorBusquedaMongo.h"
+#include <sstream>
+#include <iomanip>
 
 class GestorTitulares {
 private:
     Validaciones val;
+    GestorConexion& gestorConexion;
+    GestorBusquedaMongo gestorBusqueda;
     
 public:
-    GestorTitulares();
+    GestorTitulares(GestorConexion& gestor);
     ~GestorTitulares();
     
     // REGISTRO PRINCIPAL DE TITULARES
@@ -33,7 +39,14 @@ public:
     Titular* buscarTitularPorCI(const ListaDobleCircular<Titular*>& titulares, const std::string& ci);
     
     // GESTION DE CUENTAS BANCARIAS
-    void crearCuenta(ListaDobleCircular<Titular*>& titulares, ListaSucursales& listaSucursales);
+    void crearCuenta(ListaDobleCircular<Titular*>& titulares, ListaSucursales& listaSucursales, BPlusTreeTitulares& arbolTitulares);
+    
+    // GESTION DE CONEXION MONGODB
+    void configurarModoServidor();
+    void configurarModoCliente();
+    bool estaConectadoMongoDB() const;
+    std::string generarJSONTitularCompleto(const Titular* titular);
+    void sincronizarTitularCompleto(const Titular* titular);
 };
 
 #endif

@@ -67,3 +67,7 @@ void Titular::mostrarCuentasAhorro() const {
 ListaDobleCircular<CuentaBancaria*>& Titular::getCuentasAhorro() {
     return cuentasAhorro;
 }
+
+const ListaDobleCircular<CuentaBancaria*>& Titular::getCuentasAhorro() const {
+    return cuentasAhorro;
+}

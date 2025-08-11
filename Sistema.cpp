@@ -10,6 +10,7 @@
 #include "TablaHash.h"
 #include "Cita.h"
 #include "GestorArchivosBinarios.h"
+#include "Validaciones.h"
 #include <sstream>
 #include <iomanip>
 #include <ctime>
@@ -17,7 +18,7 @@
 #include <iostream>
 using namespace std;
 
-Sistema::Sistema(): arbolTitulares(3), gestorArchivos(hashes) {
+Sistema::Sistema(): arbolTitulares(3), gestorArchivos(hashes), gestorTitulares(gestorConexion), operacionesBancarias(gestorConexion) {
     listaSucursales.agregarSucursal(Sucursal("Sucursal Central", -34.6037, -58.3816, "123"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Norte", -34.7000, -58.3000, "456"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Sur", -34.8000, -58.4000, "789"));
@@ -64,13 +65,14 @@ void Sistema::menuPrincipal() {
         "Mostrar tabla hash",
         "Mostrar ayuda",
         "Generar codigo QR en PDF",
-        "Generar PDF de titulares", // Nueva opción
+        "Generar PDF de titulares",
+        "Chat",
         "Salir"
     };
     Menu menu;
     int opcion;
     do {
-        opcion = menu.ingresarMenu("SISTEMA BANCARIO", opciones, 17); // Update to 17 options
+        opcion = menu.ingresarMenu("SISTEMA BANCARIO", opciones, 18);
         switch(opcion) {
             case 1: registrarTitular(); break;
             case 2: crearCuenta(); break;
@@ -87,14 +89,15 @@ void Sistema::menuPrincipal() {
             case 13: mostrarTablaHash();  break;
             case 14: mostrarAyuda(); break;
             case 15: generadorQR.generarQRPDF(titulares); break;
-            case 16: generarPDFTitulares(); break; // Nueva opcion
-            case 17: {
+            case 16: generarPDFTitulares(); break;
+            case 17: menuChat(); break;
+            case 18: {
                 Backups backup;
                 backup.crearBackup(titulares);
                 cout << "\nSaliendo...\n" << endl; break;}
             default: cout << "\nOpcion invalida." << endl; system("pause"); break;
         }
-    } while(opcion != 17);
+    } while(opcion != 18);
 }
 
 /**
@@ -275,7 +278,7 @@ Titular* Sistema::buscarTitularPorCI(const std::string& ci) {
  * 
  */
 void Sistema::crearCuenta() {
-    gestorTitulares.crearCuenta(titulares, listaSucursales);
+    gestorTitulares.crearCuenta(titulares, listaSucursales, arbolTitulares);
 }
 /**
  * @brief Realiza un deposito en una cuenta bancaria de un titular.
@@ -450,4 +453,107 @@ void Sistema::menuBB() {
          */
 void Sistema::guardarTitularesEnTxt() {
     gestorArchivos.guardarTitularesEnTxt(titulares);
+}
+
+// Nuevos metodos para gestion de conexion
+void Sistema::configurarModoServidor() {
+    gestorConexion.configurarComoServidor();
+    cout << "Sistema configurado como servidor local." << endl;
+    cout << "Funcionara sin sincronizacion con MongoDB." << endl;
+    system("pause");
+}
+
+void Sistema::configurarModoCliente() {
+    string ip;
+    int puerto;
+    
+    cout << "Ingrese la IP del servidor (localhost): ";
+    getline(cin, ip);
+    if (ip.empty()) ip = "localhost";
+    
+    cout << "Ingrese el puerto del servidor (8888): ";
+    string puertoStr;
+    getline(cin, puertoStr);
+    puerto = puertoStr.empty() ? 8888 : stoi(puertoStr);
+    
+    cout << "Conectando a " << ip << ":" << puerto << "..." << endl;
+    
+    if (gestorConexion.conectarComoCliente(ip, puerto)) {
+        cout << "Conexion establecida exitosamente!" << endl;
+        cout << "Sistema sincronizado con MongoDB." << endl;
+    } else {
+        cout << "Error al conectar con el servidor." << endl;
+        cout << "Ultima razon: " << gestorConexion.obtenerUltimoError() << endl;
+    }
+    system("pause");
+}
+
+void Sistema::menuChat() {
+    if (!gestorConexion.estaConectado()) {
+        cout << "Debe conectarse al servidor primero (opcion 2)." << endl;
+        system("pause");
+        return;
+    }
+    
+    cout << "\n=== CHAT MICHIBANK ===" << endl;
+    cout << "Escriba 'salir' para regresar al menu principal" << endl;
+    cout << "Escriba 'mensajes' para ver mensajes recientes" << endl;
+    cout << "========================" << endl;
+    
+    string mensaje;
+    while (true) {
+        cout << "\nMensaje: ";
+        getline(cin, mensaje);
+        
+        if (mensaje == "salir") {
+            break;
+        } else if (mensaje == "mensajes") {
+            string mensajesRecientes = gestorConexion.recibirMensajes();
+            cout << "\n--- Mensajes Recientes ---" << endl;
+            cout << mensajesRecientes << endl;
+            cout << "-------------------------" << endl;
+        } else if (!mensaje.empty()) {
+            if (gestorConexion.enviarMensaje(mensaje)) {
+                cout << "Mensaje enviado" << endl;
+            } else {
+                cout << "Error al enviar mensaje" << endl;
+            }
+        }
+    }
+}
+
+std::string Sistema::generarJSONTitularCompleto(const Titular* titular) {
+    std::ostringstream json;
+    json << "{";
+    json << "\"cedula\":\"" << titular->getPersona().getCI() << "\",";
+    json << "\"nombre\":\"" << titular->getPersona().getNombre() << "\",";
+    json << "\"apellido\":\"" << titular->getPersona().getApellido() << "\",";
+    json << "\"telefono\":\"" << titular->getPersona().getTelefono() << "\",";
+    json << "\"correo\":\"" << titular->getPersona().getCorreo() << "\",";
+    json << "\"fechaNacimiento\":\"" << titular->getPersona().getFechaNa().getDia() << "/"
+         << titular->getPersona().getFechaNa().getMes() << "/"
+         << titular->getPersona().getFechaNa().getAnio().getAnio() << "\",";
+    
+    // Agregar cuenta corriente si existe
+    json << "\"cuentaCorriente\":";
+    if (titular->getCuentaCorriente() != nullptr) {
+        json << "{";
+        json << "\"id\":\"" << titular->getCuentaCorriente()->getID() << "\",";
+        json << "\"saldo\":" << titular->getCuentaCorriente()->getSaldo() << ",";
+        json << "\"fechaCreacion\":\"" << titular->getCuentaCorriente()->getFechaCre().getDia() << "/"
+             << titular->getCuentaCorriente()->getFechaCre().getMes() << "/"
+             << titular->getCuentaCorriente()->getFechaCre().getAnio() << "\"";
+        json << "}";
+    } else {
+        json << "null";
+    }
+    json << "}";
+    
+    return json.str();
+}
+
+void Sistema::sincronizarTitularCompleto(const Titular* titular) {
+    if (gestorConexion.estaConectado() && !gestorConexion.estaModoServidor()) {
+        gestorConexion.sincronizarTitularCompleto(titular);
+    }
 }
