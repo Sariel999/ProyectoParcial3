@@ -21,7 +21,7 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, DuplicateKeyError
 
 class MichiBankServer:
-    def __init__(self, host='localhost', port=8888):
+    def __init__(self, host='0.0.0.0', port=8888):
         self.host = host
         self.port = port
         self.server_socket = None
