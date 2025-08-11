@@ -23,6 +23,9 @@ Sistema::Sistema(): arbolTitulares(3), gestorBusquedaMongo(gestorConexion), gest
     listaSucursales.agregarSucursal(Sucursal("Sucursal Norte", -34.7000, -58.3000, "456"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Sur", -34.8000, -58.4000, "789"));
     actualizarContadoresSucursales();
+    
+    // Configurar gestor MongoDB en GeneradorQR
+    generadorQR.setGestorBusquedaMongo(&gestorBusquedaMongo);
 }
 /**
  * @brief Destroy the Sistema:: Sistema object

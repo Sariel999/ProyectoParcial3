@@ -22,14 +22,21 @@
 // Para QR real con libqrencode
 #include <qrencode.h>
 
+// Forward declaration
+class GestorBusquedaMongo;
+
 class GeneradorQR {
 private:
     Validaciones val;
+    GestorBusquedaMongo* gestorBusquedaMongo; // Puntero al gestor de busqueda MongoDB
 
 public:
     // Constructor y destructor
     GeneradorQR();
     ~GeneradorQR();
+
+    // Configuracion del gestor MongoDB
+    void setGestorBusquedaMongo(GestorBusquedaMongo* gestorMongo);
 
     // Funciones principales para generar QR
     void generarQRPDF(const ListaDobleCircular<Titular*>& titulares);
@@ -41,6 +48,10 @@ public:
     
     // Funcion auxiliar para buscar titular
     Titular* buscarTitularPorCI(const ListaDobleCircular<Titular*>& titulares, const std::string& ci);
+
+private:
+    // Metodo para obtener titular con datos frescos o locales
+    Titular* obtenerTitularActualizado(const std::string& cedula, const ListaDobleCircular<Titular*>& titulares);
 };
 
 #endif

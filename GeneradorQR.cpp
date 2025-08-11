@@ -9,16 +9,46 @@
  * 
  */
 #include "GeneradorQR.h"
+#include "GestorBusquedaMongo.h"
 #include "NodoDoble.h"
 #include <cstdlib>
 #include <functional>
 
 using namespace std;
 
-GeneradorQR::GeneradorQR() {
+GeneradorQR::GeneradorQR() : gestorBusquedaMongo(nullptr) {
 }
 
 GeneradorQR::~GeneradorQR() {
+}
+
+void GeneradorQR::setGestorBusquedaMongo(GestorBusquedaMongo* gestorMongo) {
+    gestorBusquedaMongo = gestorMongo;
+}
+
+/**
+ * @brief Obtiene un titular con datos actualizados desde MongoDB o busqueda local
+ * 
+ * @param cedula Cedula del titular a buscar
+ * @param titulares Lista de titulares local como fallback
+ * @return Titular* Puntero al titular encontrado o nullptr
+ */
+Titular* GeneradorQR::obtenerTitularActualizado(const string& cedula, const ListaDobleCircular<Titular*>& titulares) {
+    // Intentar obtener datos frescos desde MongoDB
+    if (gestorBusquedaMongo) {
+        cout << "Obteniendo datos actualizados desde MongoDB..." << endl;
+        Titular* titularFresco = gestorBusquedaMongo->obtenerTitularFresco(cedula);
+        
+        if (titularFresco) {
+            cout << "Titular encontrado en base de datos con datos actualizados." << endl;
+            return titularFresco;
+        } else {
+            cout << "Titular no encontrado en MongoDB. Buscando en datos locales..." << endl;
+        }
+    }
+    
+    // Fallback: buscar en lista local
+    return buscarTitularPorCI(titulares, cedula);
 }
 
 /**
@@ -42,21 +72,24 @@ Titular* GeneradorQR::buscarTitularPorCI(const ListaDobleCircular<Titular*>& tit
 
 /**
  * @brief Genera un PDF con codigo QR para un titular especifico
+ * Utiliza datos actualizados desde MongoDB si hay conexion disponible.
  * 
- * @param titulares Lista de titulares del sistema
+ * @param titulares Lista de titulares del sistema (usado como fallback)
  */
 void GeneradorQR::generarQRPDF(const ListaDobleCircular<Titular*>& titulares) {
     system("cls");
     cout << "\n--- GENERAR CODIGO QR EN PDF ---\n" << endl;
 
-    if (titulares.vacia()) {
-        cout << "\nNo hay titulares registrados.\n" << endl;
+    if (titulares.vacia() && !gestorBusquedaMongo) {
+        cout << "\nNo hay titulares registrados y no hay conexion a base de datos.\n" << endl;
         system("pause");
         return;
     }
 
     string cedula = val.ingresarCedula(const_cast<char*>("\nIngrese cedula del titular para generar QR:"));
-    Titular* titular = buscarTitularPorCI(titulares, cedula);
+    
+    // Obtener titular con datos actualizados desde MongoDB o busqueda local
+    Titular* titular = obtenerTitularActualizado(cedula, titulares);
     
     if (!titular) {
         cout << "\nTitular no encontrado con la cedula: " << cedula << endl;
