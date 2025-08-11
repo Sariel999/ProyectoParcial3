@@ -201,6 +201,11 @@ std::string ClienteTCP::buscarTitularCompleto(const std::string& cedula) {
     return enviarComando(comando);
 }
 
+std::string ClienteTCP::obtenerTodosTitulares() {
+    std::string comando = "GET_ALL_TITULARES";
+    return enviarComando(comando);
+}
+
 std::string ClienteTCP::formatearFecha(const Fecha& fecha) {
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(2) << fecha.getDia() << "/"

@@ -339,6 +339,25 @@ class MichiBankServer:
             self.log(f"Error al buscar titular completo: {e}")
             return "ERROR: Error de base de datos"
     
+    def obtener_todos_titulares(self):
+        """Obtiene todos los titulares completos de la base de datos"""
+        try:
+            titulares = list(self.db.titularCompleto.find({}))
+            if titulares:
+                # Convertir ObjectId a string para JSON
+                for titular in titulares:
+                    titular['_id'] = str(titular['_id'])
+                
+                self.log(f"Enviando {len(titulares)} titulares completos al cliente")
+                return json.dumps(titulares)
+            else:
+                self.log("No se encontraron titulares en la base de datos")
+                return "[]"  # Array vacío JSON
+                
+        except Exception as e:
+            self.log(f"Error al obtener todos los titulares: {e}")
+            return "ERROR: Error de base de datos"
+    
     def procesar_comando(self, comando):
         """Procesa un comando recibido del cliente"""
         try:
@@ -411,6 +430,9 @@ class MichiBankServer:
             elif comando.startswith("FIND_TITULAR_COMPLETO:"):
                 cedula = comando.split(":", 1)[1]
                 return self.buscar_titular_completo(cedula)
+            
+            elif comando == "GET_ALL_TITULARES":
+                return self.obtener_todos_titulares()
             
             else:
                 return "ERROR: Comando no reconocido"

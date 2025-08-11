@@ -15,6 +15,7 @@
 #include "Titular.h"
 #include "GestorConexion.h"
 #include <string>
+#include <vector>
 
 /**
  * @brief Clase para gestionar busquedas de titulares con carga automatica desde MongoDB
@@ -50,6 +51,12 @@ public:
      * @return Titular* Puntero al titular encontrado o nullptr si no existe
      */
     Titular* buscarTitularConCarga(ListaDobleCircular<Titular*>& titulares, const std::string& ci);
+
+    /**
+     * @brief Obtiene todos los titulares completos desde MongoDB
+     * @return std::vector<Titular*> Vector con todos los titulares o vector vacio si hay error
+     */
+    std::vector<Titular*> obtenerTodosTitularesCompletos();
 
     /**
      * @brief Busca un titular solo en la lista local (sin cargar desde MongoDB)

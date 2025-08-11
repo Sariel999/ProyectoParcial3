@@ -69,6 +69,7 @@ public:
     bool insertarTitularCompleto(const std::string& jsonData);
     bool actualizarTitularCompleto(const std::string& cedula, const std::string& jsonData);
     std::string buscarTitularCompleto(const std::string& cedula);
+    std::string obtenerTodosTitulares();
 
 private:
     // Utilidades

@@ -18,7 +18,7 @@
 #include <iostream>
 using namespace std;
 
-Sistema::Sistema(): arbolTitulares(3), gestorArchivos(hashes), gestorTitulares(gestorConexion), operacionesBancarias(gestorConexion) {
+Sistema::Sistema(): arbolTitulares(3), gestorArchivos(hashes), gestorTitulares(gestorConexion), operacionesBancarias(gestorConexion), gestorBusquedaMongo(gestorConexion) {
     listaSucursales.agregarSucursal(Sucursal("Sucursal Central", -34.6037, -58.3816, "123"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Norte", -34.7000, -58.3000, "456"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Sur", -34.8000, -58.4000, "789"));
@@ -297,36 +297,57 @@ void Sistema::realizarRetiro() {
 }
 
 void Sistema::buscarMovimientosPorFecha() {
-    if (titulares.vacia()) {
-        cout << "\nNo hay titulares registrados.\n" << endl;
-        system("pause");
-        return;
+    // Verificar conexión a MongoDB
+    if (!gestorConexion.estaConectado()) {
+        cout << "\nNo hay conexion a MongoDB. Usando datos locales..." << endl;
+        if (titulares.vacia()) {
+            cout << "No hay titulares registrados localmente." << endl;
+            system("pause");
+            return;
+        }
+        gestorBusquedas.buscarMovimientosPorFecha(titulares);
+    } else {
+        cout << "\nUsando datos desde MongoDB..." << endl;
+        gestorBusquedas.buscarMovimientosPorFecha(gestorBusquedaMongo);
     }
-    gestorBusquedas.buscarMovimientosPorFecha(titulares);
 }
 /**
  * @brief Busca titulares por nombre o apellido.
  * 
  */
 void Sistema::buscarPorTitular() {
-    if (titulares.vacia()) {
-        cout << "\nNo hay titulares registrados.\n" << endl;
-        system("pause");
-        return;
+    // Verificar conexión a MongoDB
+    if (!gestorConexion.estaConectado()) {
+        cout << "\nNo hay conexion a MongoDB. Usando datos locales..." << endl;
+        if (titulares.vacia()) {
+            cout << "No hay titulares registrados localmente." << endl;
+            system("pause");
+            return;
+        }
+        gestorBusquedas.buscarPorTitular(titulares);
+    } else {
+        cout << "\nUsando datos desde MongoDB..." << endl;
+        gestorBusquedas.buscarPorTitular(gestorBusquedaMongo);
     }
-    gestorBusquedas.buscarPorTitular(titulares);
 }
 /**
  * @brief Busca titulares y cuentas bancarias utilizando un criterio de búsqueda personalizado.
  * 
  */
 void Sistema::buscarPersonalizada() {
-    if (titulares.vacia()) {
-        cout << "\nNo hay titulares registrados.\n" << endl;
-        system("pause");
-        return;
+    // Verificar conexión a MongoDB
+    if (!gestorConexion.estaConectado()) {
+        cout << "\nNo hay conexion a MongoDB. Usando datos locales..." << endl;
+        if (titulares.vacia()) {
+            cout << "No hay titulares registrados localmente." << endl;
+            system("pause");
+            return;
+        }
+        gestorBusquedas.buscarPersonalizada(titulares);
+    } else {
+        cout << "\nUsando datos desde MongoDB..." << endl;
+        gestorBusquedas.buscarPersonalizada(gestorBusquedaMongo);
     }
-    gestorBusquedas.buscarPersonalizada(titulares);
 }
 /**
  * @brief Muestra la ayuda del sistema abriendo un archivo CHM.

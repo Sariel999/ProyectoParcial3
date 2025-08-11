@@ -25,6 +25,7 @@
 #include "GestorBusquedas.h"
 #include "MenuBusquedasBinarias.h"
 #include "GestorConexion.h"
+#include "GestorBusquedaMongo.h"
 #include <vector>
 #include <string>
 
@@ -43,6 +44,7 @@ private:
     GestorArchivosBinarios gestorArchivosBinarios;
     GestorBusquedas gestorBusquedas;
     MenuBusquedasBinarias menuBusquedasBinarias;
+    GestorBusquedaMongo gestorBusquedaMongo;
 
     Titular* buscarTitularPorCI(const std::string& cedula);
     void actualizarContadoresSucursales();

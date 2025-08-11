@@ -11,6 +11,7 @@
 #include "GestorBusquedaMongo.h"
 #include "NodoDoble.h"
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -132,4 +133,26 @@ bool GestorBusquedaMongo::reemplazarOAgregarTitular(ListaDobleCircular<Titular*>
     }
     
     return true;
+}
+
+std::vector<Titular*> GestorBusquedaMongo::obtenerTodosTitularesCompletos() {
+    std::vector<Titular*> titularesCompletos;
+    
+    if (!gestorConexion.estaConectado()) {
+        cout << "No hay conexion a MongoDB para obtener titulares completos." << endl;
+        return titularesCompletos; // Vector vacío
+    }
+    
+    cout << "Obteniendo todos los titulares completos desde MongoDB..." << endl;
+    
+    // Obtener todos los titulares desde MongoDB usando el gestor de conexión
+    titularesCompletos = gestorConexion.obtenerTodosTitulares();
+    
+    if (titularesCompletos.empty()) {
+        cout << "No se encontraron titulares en la base de datos." << endl;
+    } else {
+        cout << "Se obtuvieron " << titularesCompletos.size() << " titulares desde MongoDB." << endl;
+    }
+    
+    return titularesCompletos;
 }

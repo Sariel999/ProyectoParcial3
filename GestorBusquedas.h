@@ -12,10 +12,12 @@
 #define GESTORBUSQUEDAS_H
 
 #include <string>
+#include <vector>
 #include "ListaDobleCircular.h"
 #include "Titular.h"
 #include "Validaciones.h"
 #include "ValidacionFecha.h"
+#include "GestorBusquedaMongo.h"
 
 class GestorBusquedas {
 private:
@@ -25,6 +27,11 @@ public:
     GestorBusquedas();
     ~GestorBusquedas();
     
+    void buscarMovimientosPorFecha(GestorBusquedaMongo& gestorMongo);
+    void buscarPorTitular(GestorBusquedaMongo& gestorMongo);
+    void buscarPersonalizada(GestorBusquedaMongo& gestorMongo);
+    
+    // Métodos legacy que mantienen compatibilidad
     void buscarMovimientosPorFecha(const ListaDobleCircular<Titular*>& titulares);
     void buscarPorTitular(const ListaDobleCircular<Titular*>& titulares);
     void buscarPersonalizada(const ListaDobleCircular<Titular*>& titulares);

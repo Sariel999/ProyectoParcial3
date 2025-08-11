@@ -16,6 +16,7 @@
 #include "Titular.h"
 #include "CuentaBancaria.h"
 #include "Movimiento.h"
+#include <vector>
 
 class GestorConexion {
 private:
@@ -46,10 +47,12 @@ public:
     // Busquedas en base de datos
     Titular* buscarTitularEnBD(const std::string& cedula);
     CuentaBancaria* buscarCuentaEnBD(const std::string& idCuenta);
+    std::vector<Titular*> obtenerTodosTitulares();
     
     // Parser de JSON
     Titular* parsearTitularDesdeJSON(const std::string& json);
     Titular* parsearTitularCompletoDesdeJSON(const std::string& json);
+    std::vector<Titular*> parsearTitularesCompletosDesdeJSON(const std::string& jsonArray);
     CuentaBancaria* parsearCuentaDesdeJSON(const std::string& json);
     Movimiento* parsearMovimientoDesdeJSON(const std::string& json);
     void parsearMovimientosParaCuenta(const std::string& json, CuentaBancaria* cuenta);
@@ -72,6 +75,8 @@ public:
 private:
     std::string ultimoError;
     void establecerError(const std::string& error);
+    size_t encontrarFinObjetoJSON(const std::string& json, size_t inicio);
+    bool validarJSON(const std::string& json);
 };
 
 #endif

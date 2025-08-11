@@ -10,6 +10,7 @@
 #include "GestorConexion.h"
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 GestorConexion::GestorConexion() : cliente(nullptr), modoServidor(false), conectado(false), ultimoError("") {
     cliente = new ClienteTCP();
@@ -949,4 +950,279 @@ void GestorConexion::parsearMovimientosParaCuenta(const std::string& json, Cuent
         std::cout << "DEBUG: Error al parsear movimientos" << std::endl;
         // Error silencioso, no detener el procesamiento
     }
+}
+
+size_t GestorConexion::encontrarFinObjetoJSON(const std::string& json, size_t inicio) {
+    if (inicio >= json.length() || json[inicio] != '{') {
+        return std::string::npos;
+    }
+    
+    int nivelLlaves = 0;
+    bool dentroString = false;
+    bool escape = false;
+    
+    for (size_t i = inicio; i < json.length(); i++) {
+        char c = json[i];
+        
+        if (escape) {
+            escape = false;
+            continue;
+        }
+        
+        if (c == '\\') {
+            escape = true;
+            continue;
+        }
+        
+        if (c == '"') {
+            dentroString = !dentroString;
+            continue;
+        }
+        
+        if (!dentroString) {
+            if (c == '{') {
+                nivelLlaves++;
+            } else if (c == '}') {
+                nivelLlaves--;
+                if (nivelLlaves == 0) {
+                    return i;
+                }
+            }
+        }
+    }
+    
+    return std::string::npos; // No se encontró el final
+}
+
+bool GestorConexion::validarJSON(const std::string& json) {
+    int nivelLlaves = 0;
+    int nivelCorchetes = 0;
+    bool dentroString = false;
+    bool escape = false;
+    
+    for (size_t i = 0; i < json.length(); i++) {
+        char c = json[i];
+        
+        if (escape) {
+            escape = false;
+            continue;
+        }
+        
+        if (c == '\\') {
+            escape = true;
+            continue;
+        }
+        
+        if (c == '"') {
+            dentroString = !dentroString;
+            continue;
+        }
+        
+        if (!dentroString) {
+            if (c == '{') {
+                nivelLlaves++;
+            } else if (c == '}') {
+                nivelLlaves--;
+                if (nivelLlaves < 0) return false;
+            } else if (c == '[') {
+                nivelCorchetes++;
+            } else if (c == ']') {
+                nivelCorchetes--;
+                if (nivelCorchetes < 0) return false;
+            }
+        }
+    }
+    
+    return (nivelLlaves == 0 && nivelCorchetes == 0 && !dentroString);
+}
+
+std::vector<Titular*> GestorConexion::parsearTitularesCompletosDesdeJSON(const std::string& jsonArray) {
+    std::vector<Titular*> titulares;
+    
+    try {
+        std::cout << "DEBUG: Iniciando parseo de array de titulares" << std::endl;
+        std::cout << "DEBUG: Longitud del JSON: " << jsonArray.length() << std::endl;
+        
+        // Verificar si el JSON está vacío o es un array vacío
+        if (jsonArray.empty() || jsonArray == "[]") {
+            std::cout << "DEBUG: Array JSON vacío recibido" << std::endl;
+            return titulares;
+        }
+        
+        // Buscar el inicio y fin del array
+        size_t inicioArray = jsonArray.find('[');
+        size_t finArray = jsonArray.rfind(']');
+        
+        if (inicioArray == std::string::npos || finArray == std::string::npos || finArray <= inicioArray) {
+            std::cout << "DEBUG: No se encontraron corchetes válidos del array JSON" << std::endl;
+            return titulares;
+        }
+        
+        std::cout << "DEBUG: Array encontrado desde posición " << inicioArray << " hasta " << finArray << std::endl;
+        
+        // Extraer el contenido del array
+        std::string contenidoArray = jsonArray.substr(inicioArray + 1, finArray - inicioArray - 1);
+        
+        // Eliminar espacios en blanco del inicio y final
+        size_t inicio = contenidoArray.find_first_not_of(" \t\n\r");
+        if (inicio == std::string::npos) {
+            std::cout << "DEBUG: Array JSON contiene solo espacios en blanco" << std::endl;
+            return titulares;
+        }
+        contenidoArray = contenidoArray.substr(inicio);
+        
+        std::cout << "DEBUG: Contenido del array (primeros 200 chars): " 
+                  << contenidoArray.substr(0, 200) << std::endl;
+        
+        // Intentar método alternativo de parseo si detectamos múltiples objetos
+        std::cout << "DEBUG: Intentando método alternativo de parseo..." << std::endl;
+        
+        // Método alternativo: buscar patrones "},{" para separar objetos
+        std::vector<std::string> objetosJSON;
+        size_t inicioActual = 0;
+        
+        // Buscar todas las posiciones donde un objeto termina y otro comienza
+        while (inicioActual < contenidoArray.length()) {
+            // Saltar espacios al inicio
+            while (inicioActual < contenidoArray.length() && 
+                   (contenidoArray[inicioActual] == ' ' || contenidoArray[inicioActual] == '\t' || 
+                    contenidoArray[inicioActual] == '\n' || contenidoArray[inicioActual] == '\r' || 
+                    contenidoArray[inicioActual] == ',')) {
+                inicioActual++;
+            }
+            
+            if (inicioActual >= contenidoArray.length()) break;
+            
+            // Buscar el final de este objeto
+            size_t finActual = encontrarFinObjetoJSON(contenidoArray, inicioActual);
+            
+            if (finActual == std::string::npos || finActual <= inicioActual) {
+                std::cout << "DEBUG: No se pudo encontrar fin del objeto en posición " << inicioActual << std::endl;
+                break;
+            }
+            
+            std::string objetoJSON = contenidoArray.substr(inicioActual, finActual - inicioActual + 1);
+            objetosJSON.push_back(objetoJSON);
+            
+            std::cout << "DEBUG: Objeto " << objetosJSON.size() << " extraído (longitud: " 
+                      << objetoJSON.length() << " chars)" << std::endl;
+            
+            inicioActual = finActual + 1;
+        }
+        
+        std::cout << "DEBUG: Total de objetos JSON separados: " << objetosJSON.size() << std::endl;
+        
+        // Procesar cada objeto JSON separado
+        for (size_t i = 0; i < objetosJSON.size(); i++) {
+            const std::string& titularJSON = objetosJSON[i];
+            
+            std::cout << "DEBUG: Parseando titular " << (i + 1) << " de " << objetosJSON.size() 
+                      << " (JSON de " << titularJSON.length() << " caracteres)" << std::endl;
+            
+            // Validar el JSON individual
+            if (!validarJSON(titularJSON)) {
+                std::cout << "DEBUG: ¡ADVERTENCIA! JSON del titular " << (i + 1) << " no está bien formado" << std::endl;
+                std::cout << "DEBUG: JSON problemático: " << titularJSON.substr(0, 200) << "..." << std::endl;
+                continue;
+            }
+            
+            std::cout << "DEBUG: JSON del titular (primeros 150 chars): " 
+                      << titularJSON.substr(0, 150) << std::endl;
+            
+            // Parsear el titular usando el método existente
+            Titular* titular = parsearTitularCompletoDesdeJSON(titularJSON);
+            
+            if (titular) {
+                titulares.push_back(titular);
+                std::cout << "DEBUG: ✓ Titular " << (i + 1) << " parseado exitosamente: " 
+                          << titular->getPersona().getNombre() << " " 
+                          << titular->getPersona().getApellido() 
+                          << " (CI: " << titular->getPersona().getCI() << ")" << std::endl;
+            } else {
+                std::cout << "DEBUG: ✗ Error al parsear titular " << (i + 1) << std::endl;
+                
+                // Guardar el JSON problemático en un archivo separado
+                try {
+                    std::ofstream problemFile("debug_problema_titular_" + std::to_string(i + 1) + ".txt");
+                    problemFile << titularJSON;
+                    problemFile.close();
+                    std::cout << "DEBUG: JSON problemático guardado en 'debug_problema_titular_" 
+                              << (i + 1) << ".txt'" << std::endl;
+                } catch (...) {
+                    std::cout << "DEBUG: No se pudo guardar archivo de problema" << std::endl;
+                }
+            }
+        }
+        
+        std::cout << "DEBUG: Parseo alternativo completado. Total titulares obtenidos: " << titulares.size() << std::endl;
+        
+    } catch (const std::exception& e) {
+        std::cout << "DEBUG: Excepción durante el parseo: " << e.what() << std::endl;
+        // Limpiar memoria en caso de error
+        for (Titular* titular : titulares) {
+            delete titular;
+        }
+        titulares.clear();
+    } catch (...) {
+        std::cout << "DEBUG: Error desconocido durante el parseo de titulares" << std::endl;
+        // Limpiar memoria en caso de error
+        for (Titular* titular : titulares) {
+            delete titular;
+        }
+        titulares.clear();
+    }
+    
+    return titulares;
+}
+
+std::vector<Titular*> GestorConexion::obtenerTodosTitulares() {
+    std::vector<Titular*> titulares;
+    
+    if (!conectado || !cliente) {
+        establecerError("No hay conexion a la base de datos");
+        return titulares; // Vector vacío
+    }
+
+    try {
+        std::string resultado = cliente->obtenerTodosTitulares();
+        if (resultado.empty() || resultado.substr(0, 5) == "ERROR") {
+            establecerError("Error al obtener titulares desde la base de datos");
+            return titulares; // Vector vacío
+        }
+        
+        std::cout << "DEBUG: Respuesta completa del servidor (primeros 500 chars): " 
+                  << resultado.substr(0, 500) << std::endl;
+        
+        // Validar JSON antes de procesarlo
+        if (!validarJSON(resultado)) {
+            std::cout << "DEBUG: ¡ADVERTENCIA! JSON recibido no está bien formado" << std::endl;
+        } else {
+            std::cout << "DEBUG: JSON recibido parece estar bien formado" << std::endl;
+        }
+        
+        // Guardar el JSON completo en un archivo para debugging
+        try {
+            std::ofstream debugFile("debug_json_response.txt");
+            debugFile << resultado;
+            debugFile.close();
+            std::cout << "DEBUG: JSON completo guardado en 'debug_json_response.txt'" << std::endl;
+        } catch (...) {
+            std::cout << "DEBUG: No se pudo guardar el archivo de debug" << std::endl;
+        }
+        
+        // Usar el nuevo método especializado para parsear arrays
+        titulares = parsearTitularesCompletosDesdeJSON(resultado);
+        
+        std::cout << "Total de titulares parseados exitosamente: " << titulares.size() << std::endl;
+        
+    } catch (...) {
+        establecerError("Error al obtener titulares desde la base de datos");
+        // Limpiar titulares ya creados en caso de error
+        for (Titular* titular : titulares) {
+            delete titular;
+        }
+        titulares.clear();
+    }
+    
+    return titulares;
 }
