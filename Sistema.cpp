@@ -26,6 +26,9 @@ Sistema::Sistema(): arbolTitulares(3), gestorBusquedaMongo(gestorConexion), gest
     
     // Configurar gestor MongoDB en GeneradorQR
     generadorQR.setGestorBusquedaMongo(&gestorBusquedaMongo);
+    
+    // Configurar gestor MongoDB en GestorArchivosBinarios
+    gestorArchivosBinarios.setGestorBusquedaMongo(&gestorBusquedaMongo);
 }
 /**
  * @brief Destroy the Sistema:: Sistema object

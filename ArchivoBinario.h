@@ -14,12 +14,20 @@
 #include "Titular.h"
 #include "NodoDoble.h"
 #include <string>
+#include <vector>
+
+// Forward declaration
+class GestorBusquedaMongo;
 
 class ArchivoBinario {
 public:
     static void guardar(const ListaDobleCircular<Titular*>& titulares, const std::string& nombreArchivo);
+    static void guardarDesdeVector(const std::vector<Titular*>& titulares, const std::string& nombreArchivo);
     void cargar(ListaDobleCircular<Titular*>& titulares, const std::string& nombreArchivo);
     static bool cargarBackup(ListaDobleCircular<Titular*>& titulares, const std::string& nombreArchivo);
+
+private:
+    static void procesarMovimientosParaArchivoBinario(std::ofstream& archivo, ListaDobleCircular<Movimiento*>& movimientos);
 };
 
 #endif

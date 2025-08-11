@@ -9,34 +9,83 @@
  * 
  */
 #include "GestorArchivosBinarios.h"
+#include "GestorBusquedaMongo.h"
 #include "ArchivoBinario.h"
 #include "CifradoCesar.h"
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include <vector>
 
 using namespace std;
 
-GestorArchivosBinarios::GestorArchivosBinarios() {
+GestorArchivosBinarios::GestorArchivosBinarios() : gestorBusquedaMongo(nullptr) {
 }
 
 GestorArchivosBinarios::~GestorArchivosBinarios() {
 }
 
+void GestorArchivosBinarios::setGestorBusquedaMongo(GestorBusquedaMongo* gestorMongo) {
+    gestorBusquedaMongo = gestorMongo;
+}
+
+/**
+ * @brief Obtiene datos actualizados desde MongoDB o usa datos locales como fallback
+ * 
+ * @param titulares Lista de titulares local como fallback
+ * @return std::vector<Titular*> Vector con datos actualizados
+ */
+std::vector<Titular*> GestorArchivosBinarios::obtenerDatosActualizados(const ListaDobleCircular<Titular*>& titulares) {
+    std::vector<Titular*> datosActualizados;
+    
+    // Intentar obtener datos desde MongoDB
+    if (gestorBusquedaMongo) {
+        cout << "Obteniendo datos completos desde MongoDB..." << endl;
+        datosActualizados = gestorBusquedaMongo->obtenerTodosTitularesCompletos();
+        
+        if (!datosActualizados.empty()) {
+            cout << "Se obtuvieron " << datosActualizados.size() << " titulares desde MongoDB." << endl;
+            return datosActualizados;
+        } else {
+            cout << "No se pudieron obtener datos desde MongoDB. Usando datos locales." << endl;
+        }
+    }
+    
+    // Fallback: convertir lista local a vector
+    if (!titulares.vacia()) {
+        NodoDoble<Titular*>* actual = titulares.getCabeza();
+        if (actual) {
+            do {
+                datosActualizados.push_back(actual->dato);
+                actual = actual->siguiente;
+            } while (actual != titulares.getCabeza());
+        }
+    }
+    
+    return datosActualizados;
+}
+
 /**
  * @brief Guarda los titulares en un archivo binario cifrado usando cifrado Cesar
+ * Utiliza datos actualizados desde MongoDB si hay conexion disponible.
  * 
- * @param titulares Lista de titulares del sistema
+ * @param titulares Lista de titulares del sistema (usado como fallback)
  */
 void GestorArchivosBinarios::guardarArchivoBinCifrado(const ListaDobleCircular<Titular*>& titulares) {
     system("cls");
-    cout << "\n--- GUARDAR CUENTAS EN ARCHIVO BINARIO ---" << endl;
-    if (titulares.vacia()) {
+    cout << "\n--- GUARDAR CUENTAS EN ARCHIVO BINARIO CIFRADO ---" << endl;
+    
+    // Obtener datos actualizados desde MongoDB o locales
+    std::vector<Titular*> datosActualizados = obtenerDatosActualizados(titulares);
+    
+    if (datosActualizados.empty()) {
         cout << "\nNo hay titulares registrados para guardar.\n" << endl;
         system("pause");
         return;
     }
-    ArchivoBinario::guardar(titulares, "cuentas_temp.bin");
+    
+    // Usar la version que trabaja con vector
+    ArchivoBinario::guardarDesdeVector(datosActualizados, "cuentas_temp.bin");
 
     int desplazamiento = 3; // Puedes elegir el desplazamiento que desees
     
@@ -50,27 +99,34 @@ void GestorArchivosBinarios::guardarArchivoBinCifrado(const ListaDobleCircular<T
 
 /**
  * @brief Guarda los titulares en un archivo binario sin cifrar
+ * Utiliza datos actualizados desde MongoDB si hay conexion disponible.
  * 
- * @param titulares Lista de titulares del sistema
+ * @param titulares Lista de titulares del sistema (usado como fallback)
  */
 void GestorArchivosBinarios::guardarArchivoBinSinCifrar(const ListaDobleCircular<Titular*>& titulares) {
     system("cls");
-    cout << "\n--- GUARDAR CUENTAS EN ARCHIVO BINARIO ---" << endl;
-    if (titulares.vacia()) {
+    cout << "\n--- GUARDAR CUENTAS EN ARCHIVO BINARIO SIN CIFRAR ---" << endl;
+    
+    // Obtener datos actualizados desde MongoDB o locales
+    std::vector<Titular*> datosActualizados = obtenerDatosActualizados(titulares);
+    
+    if (datosActualizados.empty()) {
         cout << "\nNo hay titulares registrados para guardar.\n" << endl;
         system("pause");
         return;
     }
-    ArchivoBinario::guardar(titulares, "cuentasSinCifrar.bin");
+    
+    // Usar la version que trabaja con vector
+    ArchivoBinario::guardarDesdeVector(datosActualizados, "cuentasSinCifrar.bin");
 
-    cout << "\nCuentas guardadas 'cuentasSinCifrar.bin'.\n" << endl;
+    cout << "\nCuentas guardadas en 'cuentasSinCifrar.bin'.\n" << endl;
     system("pause");
 }
 
 /**
  * @brief Decifra un archivo binario previamente cifrado con cifrado Cesar
  * 
- * @param titulares Lista de titulares del sistema (para guardar el resultado)
+ * @param titulares Lista de titulares del sistema (no utilizada, se mantiene por compatibilidad)
  */
 void GestorArchivosBinarios::decifrarArchivoCifrado(const ListaDobleCircular<Titular*>& titulares) {
     system("cls");
@@ -81,10 +137,11 @@ void GestorArchivosBinarios::decifrarArchivoCifrado(const ListaDobleCircular<Tit
         system("pause");
         return;
     }
+    archivo.close();
 
     int desplazamiento = 3; 
-    cifrarCesarArchivoBinario(std::string("cuentasCifrado.bin"), std::string("cuentasDecifradas.bin"), -desplazamiento);
-    ArchivoBinario::guardar(titulares, "cuentasDecifradas.bin");
-    cout << "\nArchivo decifrado y cargado exitosamente.\n" << endl;
+    descifrarCesarArchivoBinario(std::string("cuentasCifrado.bin"), std::string("cuentasDecifradas.bin"), -desplazamiento);
+    
+    cout << "\nArchivo decifrado exitosamente en 'cuentasDecifradas.bin'.\n" << endl;
     system("pause");
 }

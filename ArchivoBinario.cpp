@@ -17,6 +17,7 @@
 #include <fstream>
 #include <iostream>
 #include <direct.h>
+#include <vector>
 using namespace std;
 // No hay como cambiar los for a for-each porque el for se esta ocupando para leer datos de un archivo binario
 // --- FUNCIONES AUXILIARES PARA STRINGS ---
@@ -163,6 +164,124 @@ void ArchivoBinario::guardar(const ListaDobleCircular<Titular*>& titulares, cons
         } while (actual != titulares.getCabeza());
     }
     archivo.close();
+}
+
+/**
+ * @brief Guarda titulares desde un vector en archivo binario
+ * 
+ * @param titulares Vector de titulares obtenido desde MongoDB
+ * @param nombreArchivo Nombre del archivo donde guardar
+ */
+void ArchivoBinario::guardarDesdeVector(const std::vector<Titular*>& titulares, const std::string& nombreArchivo) {
+    ofstream archivo(nombreArchivo, ios::binary);
+    if (!archivo) {
+        cout << "\nNo se pudo abrir el archivo.\n" << endl;
+        return;
+    }
+
+    for (Titular* t : titulares) {
+        if (!t) continue; // Validacion de seguridad
+        
+        Persona p = t->getPersona();
+        // Guardar Persona campo por campo
+        escribirString(archivo, p.getCI());
+        escribirString(archivo, p.getNombre());
+        escribirString(archivo, p.getApellido());
+        escribirString(archivo, p.getTelefono());
+        escribirString(archivo, p.getCorreo());
+        Fecha fechaNac = p.getFechaNa();
+        archivo.write(reinterpret_cast<char*>(&fechaNac), sizeof(Fecha));
+
+        // Cuenta corriente
+        CuentaBancaria* c = t->getCuentaCorriente();
+        bool tieneCorriente = c != nullptr;
+        archivo.write(reinterpret_cast<char*>(&tieneCorriente), sizeof(bool));
+        if (tieneCorriente) {
+            escribirString(archivo, c->getID());
+            FechaHora fechaCre = c->getFechaCre();
+            archivo.write(reinterpret_cast<char*>(&fechaCre), sizeof(FechaHora));
+            float saldo = c->getSaldo();
+            archivo.write(reinterpret_cast<char*>(&saldo), sizeof(float));
+            escribirString(archivo, c->getTipoCuenta());
+
+            // Guardar movimientos de cuenta corriente
+            procesarMovimientosParaArchivoBinario(archivo, c->getMovimientos());
+        }
+
+        // Guardar cuentas de ahorro
+        int totalAhorros = 0;
+        NodoDoble<CuentaBancaria*>* nodoA = t->getCuentasAhorro().getCabeza();
+        if (nodoA) {
+            NodoDoble<CuentaBancaria*>* temp = nodoA;
+            do {
+                totalAhorros++;
+                temp = temp->siguiente;
+            } while (temp != nodoA);
+        }
+        archivo.write(reinterpret_cast<char*>(&totalAhorros), sizeof(int));
+
+        if (nodoA) {
+            NodoDoble<CuentaBancaria*>* temp = nodoA;
+            do {
+                CuentaBancaria* ahorro = temp->dato;
+                escribirString(archivo, ahorro->getID());
+                FechaHora fechaCreAhorro = ahorro->getFechaCre();
+                archivo.write(reinterpret_cast<char*>(&fechaCreAhorro), sizeof(FechaHora));
+                float saldoAhorro = ahorro->getSaldo();
+                archivo.write(reinterpret_cast<char*>(&saldoAhorro), sizeof(float));
+                escribirString(archivo, ahorro->getTipoCuenta());
+
+                // Guardar movimientos de cuenta de ahorro
+                procesarMovimientosParaArchivoBinario(archivo, ahorro->getMovimientos());
+                
+                temp = temp->siguiente;
+            } while (temp != nodoA);
+        }
+    }
+    
+    archivo.close();
+}
+
+/**
+ * @brief Procesa y guarda movimientos de una cuenta en archivo binario
+ * 
+ * @param archivo Stream del archivo binario
+ * @param movimientos Lista de movimientos a procesar
+ */
+void ArchivoBinario::procesarMovimientosParaArchivoBinario(ofstream& archivo, ListaDobleCircular<Movimiento*>& movimientos) {
+    int count = 0;
+    NodoDoble<Movimiento*>* nodoMov = movimientos.getCabeza();
+    
+    // Contar movimientos
+    if (nodoMov) {
+        NodoDoble<Movimiento*>* temp = nodoMov;
+        do {
+            count++;
+            temp = temp->siguiente;
+        } while (temp != nodoMov);
+    }
+    
+    archivo.write(reinterpret_cast<char*>(&count), sizeof(int));
+    
+    // Guardar movimientos
+    if (nodoMov) {
+        NodoDoble<Movimiento*>* temp = nodoMov;
+        do {
+            Movimiento* m = temp->dato;
+            escribirString(archivo, m->getIDMovimiento());
+            Fecha fechaMov = m->getFechaMov();
+            archivo.write(reinterpret_cast<char*>(&fechaMov), sizeof(Fecha));
+            Hora hora = m->getHora();
+            archivo.write(reinterpret_cast<char*>(&hora), sizeof(Hora));
+            float monto = m->getMonto();
+            archivo.write(reinterpret_cast<char*>(&monto), sizeof(float));
+            bool tipo = m->getTipo();
+            archivo.write(reinterpret_cast<char*>(&tipo), sizeof(bool));
+            int numMov = m->getNumeroMovimiento();
+            archivo.write(reinterpret_cast<char*>(&numMov), sizeof(int));
+            temp = temp->siguiente;
+        } while (temp != nodoMov);
+    }
 }
 
 // --- CARGAR ---

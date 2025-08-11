@@ -12,19 +12,29 @@
 #define GESTORARCHIVOS_BINARIOS_H
 
 #include <string>
+#include <vector>
 #include "ListaDobleCircular.h"
 #include "Titular.h"
 
+// Forward declaration
+class GestorBusquedaMongo;
+
 class GestorArchivosBinarios {
 private:
+    GestorBusquedaMongo* gestorBusquedaMongo; // Puntero al gestor de busqueda MongoDB
     
 public:
     GestorArchivosBinarios();
     ~GestorArchivosBinarios();
     
+    void setGestorBusquedaMongo(GestorBusquedaMongo* gestorMongo);
     void guardarArchivoBinCifrado(const ListaDobleCircular<Titular*>& titulares);
     void guardarArchivoBinSinCifrar(const ListaDobleCircular<Titular*>& titulares);
     void decifrarArchivoCifrado(const ListaDobleCircular<Titular*>& titulares);
+
+private:
+    // Metodos auxiliares para obtener datos
+    std::vector<Titular*> obtenerDatosActualizados(const ListaDobleCircular<Titular*>& titulares);
 };
 
 #endif
