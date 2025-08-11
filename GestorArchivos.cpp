@@ -9,6 +9,7 @@
  * 
  */
 #include "GestorArchivos.h"
+#include "GestorBusquedaMongo.h"
 #include "NodoDoble.h"
 #include "Persona.h"
 #include <iostream>
@@ -20,22 +21,45 @@
 
 using namespace std;
 
-GestorArchivos::GestorArchivos(TablaHash& hashTable) : hashes(hashTable) {
+GestorArchivos::GestorArchivos(TablaHash& hashTable, GestorBusquedaMongo* gestorMongo) 
+    : hashes(hashTable), gestorBusquedaMongo(gestorMongo) {
 }
 
 GestorArchivos::~GestorArchivos() {
 }
 
+void GestorArchivos::setGestorBusquedaMongo(GestorBusquedaMongo* gestorMongo) {
+    gestorBusquedaMongo = gestorMongo;
+}
+
 /**
  * @brief Guarda los titulares, sus cuentas bancarias y todos los movimientos en un archivo de texto.
+ * Utiliza los datos completos desde MongoDB si hay conexion disponible.
  * 
- * @param titulares Lista de titulares del sistema
+ * @param titulares Lista de titulares del sistema (usado como fallback)
  */
 void GestorArchivos::guardarTitularesEnTxt(const ListaDobleCircular<Titular*>& titulares) {
     system("cls");
     cout << "\n--- GUARDAR TITULARES EN ARCHIVO TXT ---" << endl;
 
-    if (titulares.vacia()) {
+    // Obtener datos desde MongoDB si hay conexion disponible
+    std::vector<Titular*> titularesCompletos;
+    bool usandoDatosMongoDB = false;
+    
+    if (gestorBusquedaMongo) {
+        cout << "\nObteniendo datos completos desde MongoDB..." << endl;
+        titularesCompletos = gestorBusquedaMongo->obtenerTodosTitularesCompletos();
+        
+        if (!titularesCompletos.empty()) {
+            usandoDatosMongoDB = true;
+            cout << "Se obtuvieron " << titularesCompletos.size() << " titulares desde MongoDB." << endl;
+        } else {
+            cout << "No se pudieron obtener datos desde MongoDB. Usando datos locales." << endl;
+        }
+    }
+    
+    // Si no hay datos de MongoDB y la lista local esta vacia, no hay nada que guardar
+    if (!usandoDatosMongoDB && titulares.vacia()) {
         cout << "\nNo hay titulares registrados para guardar.\n" << endl;
         system("pause");
         return;
@@ -50,112 +74,162 @@ void GestorArchivos::guardarTitularesEnTxt(const ListaDobleCircular<Titular*>& t
 
     archivo << "=========================================" << endl;
     archivo << "       LISTADO COMPLETO DE TITULARES    " << endl;
+    if (usandoDatosMongoDB) {
+        archivo << "     (Datos obtenidos desde MongoDB)    " << endl;
+    } else {
+        archivo << "      (Datos de memoria local)          " << endl;
+    }
     archivo << "=========================================" << endl << endl;
 
-    NodoDoble<Titular*>* actual = titulares.getCabeza();
     int contadorTitular = 1;
     
-    if (actual) {
-        do {
-            Titular* titular = actual->dato;
-            Persona persona = titular->getPersona();
-
-            cout << "Guardando titular: " << persona.getNombre() << " " << persona.getApellido() << endl;
-
-            // Información del titular
-            archivo << "TITULAR #" << contadorTitular << endl;
-            archivo << "=========================================" << endl;
-            archivo << "CI: " << persona.getCI() << endl;
-            archivo << "Nombre Completo: " << persona.getNombre() << " " << persona.getApellido() << endl;
-            archivo << "Telefono: " << persona.getTelefono() << endl;
-            archivo << "Correo: " << persona.getCorreo() << endl;
-            archivo << "Fecha de Nacimiento: " << persona.getFechaNa().getDia() << "/" 
-                    << persona.getFechaNa().getMes() << "/" << persona.getFechaNa().getAnio().getAnio() << endl;
-            archivo << endl;
-
-            // Cuenta corriente y sus movimientos
-            CuentaBancaria* cuentaCorriente = titular->getCuentaCorriente();
-            if (cuentaCorriente) {
-                cout << "Guardando cuenta corriente y movimientos de " << persona.getNombre() << endl;
-                archivo << "--- CUENTA CORRIENTE ---" << endl;
-                archivo << "ID Cuenta: " << cuentaCorriente->getID() << endl;
-                archivo << "Tipo: " << cuentaCorriente->getTipoCuenta() << endl;
-                archivo << "Saldo Actual: $" << cuentaCorriente->getSaldo() << endl;
-                
-                // Movimientos de cuenta corriente
-                ListaDobleCircular<Movimiento*>& movimientos = cuentaCorriente->getMovimientos();
-                if (!movimientos.vacia()) {
-                    archivo << "MOVIMIENTOS:" << endl;
-                    NodoDoble<Movimiento*>* nodoMov = movimientos.getCabeza();
-                    int numMov = 1;
-                    do {
-                        Movimiento* mov = nodoMov->dato;
-                        archivo << "  " << numMov << ". ID: " << mov->getIDMovimiento() 
-                                << " | Fecha: " << mov->getFechaMov().getDia() << "/" 
-                                << mov->getFechaMov().getMes() << "/" << mov->getFechaMov().getAnio().getAnio()
-                                << " | Tipo: " << (mov->getTipo() ? "DEPOSITO" : "RETIRO")
-                                << " | Monto: $" << mov->getMonto() << endl;
-                        nodoMov = nodoMov->siguiente;
-                        numMov++;
-                    } while (nodoMov != movimientos.getCabeza());
-                } else {
-                    archivo << "Sin movimientos registrados." << endl;
-                }
-                archivo << endl;
-            } else {
-                archivo << "--- SIN CUENTA CORRIENTE ---" << endl << endl;
-            }
-
-            // Cuentas de ahorro y sus movimientos
-            NodoDoble<CuentaBancaria*>* nodoAhorro = titular->getCuentasAhorro().getCabeza();
-            if (nodoAhorro) {
-                cout << "Guardando cuentas de ahorro y movimientos de " << persona.getNombre() << endl;
-                int contadorAhorro = 1;
-                do {
-                    CuentaBancaria* cuentaAhorro = nodoAhorro->dato;
-                    archivo << "--- CUENTA DE AHORRO #" << contadorAhorro << " ---" << endl;
-                    archivo << "ID Cuenta: " << cuentaAhorro->getID() << endl;
-                    archivo << "Tipo: " << cuentaAhorro->getTipoCuenta() << endl;
-                    archivo << "Saldo Actual: $" << cuentaAhorro->getSaldo() << endl;
-                    
-                    // Movimientos de cuenta de ahorro
-                    ListaDobleCircular<Movimiento*>& movimientosAhorro = cuentaAhorro->getMovimientos();
-                    if (!movimientosAhorro.vacia()) {
-                        archivo << "MOVIMIENTOS:" << endl;
-                        NodoDoble<Movimiento*>* nodoMovAhorro = movimientosAhorro.getCabeza();
-                        int numMovAhorro = 1;
-                        do {
-                            Movimiento* movAhorro = nodoMovAhorro->dato;
-                            archivo << "  " << numMovAhorro << ". ID: " << movAhorro->getIDMovimiento() 
-                                    << " | Fecha: " << movAhorro->getFechaMov().getDia() << "/" 
-                                    << movAhorro->getFechaMov().getMes() << "/" << movAhorro->getFechaMov().getAnio().getAnio()
-                                    << " | Tipo: " << (movAhorro->getTipo() ? "DEPOSITO" : "RETIRO")
-                                    << " | Monto: $" << movAhorro->getMonto() << endl;
-                            nodoMovAhorro = nodoMovAhorro->siguiente;
-                            numMovAhorro++;
-                        } while (nodoMovAhorro != movimientosAhorro.getCabeza());
-                    } else {
-                        archivo << "Sin movimientos registrados." << endl;
-                    }
-                    archivo << endl;
-                    
-                    nodoAhorro = nodoAhorro->siguiente;
-                    contadorAhorro++;
-                } while (nodoAhorro != titular->getCuentasAhorro().getCabeza());
-            } else {
-                archivo << "--- SIN CUENTAS DE AHORRO ---" << endl << endl;
-            }
-
-            archivo << "=========================================" << endl << endl;
-            actual = actual->siguiente;
+    if (usandoDatosMongoDB) {
+        // Procesar datos desde MongoDB
+        for (Titular* titular : titularesCompletos) {
+            procesarTitularParaArchivo(archivo, titular, contadorTitular);
             contadorTitular++;
-        } while (actual != titulares.getCabeza());
+        }
+    } else {
+        // Procesar datos desde lista local (codigo original)
+        NodoDoble<Titular*>* actual = titulares.getCabeza();
+        
+        if (actual) {
+            do {
+                procesarTitularParaArchivo(archivo, actual->dato, contadorTitular);
+                actual = actual->siguiente;
+                contadorTitular++;
+            } while (actual != titulares.getCabeza());
+        }
     }
 
     archivo.close();
     cout << "\nTitulares, cuentas y movimientos guardados exitosamente en 'titulares.txt'.\n" << endl;
 
     // Generar y guardar el hash MD5
+    generarYGuardarHashMD5();
+    
+    system("pause");
+}
+
+/**
+ * @brief Procesa un titular individual y escribe su informacion al archivo
+ * 
+ * @param archivo Stream del archivo donde escribir
+ * @param titular Puntero al titular a procesar
+ * @param numeroTitular Numero del titular en la secuencia
+ */
+void GestorArchivos::procesarTitularParaArchivo(ofstream& archivo, Titular* titular, int numeroTitular) {
+    Persona persona = titular->getPersona();
+
+    cout << "Guardando titular: " << persona.getNombre() << " " << persona.getApellido() << endl;
+
+    // Informacion del titular
+    archivo << "TITULAR #" << numeroTitular << endl;
+    archivo << "=========================================" << endl;
+    archivo << "CI: " << persona.getCI() << endl;
+    archivo << "Nombre Completo: " << persona.getNombre() << " " << persona.getApellido() << endl;
+    archivo << "Telefono: " << persona.getTelefono() << endl;
+    archivo << "Correo: " << persona.getCorreo() << endl;
+    archivo << "Fecha de Nacimiento: " << persona.getFechaNa().getDia() << "/" 
+            << persona.getFechaNa().getMes() << "/" << persona.getFechaNa().getAnio().getAnio() << endl;
+    archivo << endl;
+
+    // Procesar cuenta corriente
+    procesarCuentaCorrienteParaArchivo(archivo, titular);
+    
+    // Procesar cuentas de ahorro
+    procesarCuentasAhorroParaArchivo(archivo, titular);
+
+    archivo << "=========================================" << endl << endl;
+}
+
+/**
+ * @brief Procesa la cuenta corriente de un titular y escribe la informacion al archivo
+ * 
+ * @param archivo Stream del archivo donde escribir
+ * @param titular Puntero al titular
+ */
+void GestorArchivos::procesarCuentaCorrienteParaArchivo(ofstream& archivo, Titular* titular) {
+    CuentaBancaria* cuentaCorriente = titular->getCuentaCorriente();
+    if (cuentaCorriente) {
+        Persona persona = titular->getPersona();
+        cout << "Guardando cuenta corriente y movimientos de " << persona.getNombre() << endl;
+        
+        archivo << "--- CUENTA CORRIENTE ---" << endl;
+        archivo << "ID Cuenta: " << cuentaCorriente->getID() << endl;
+        archivo << "Tipo: " << cuentaCorriente->getTipoCuenta() << endl;
+        archivo << "Saldo Actual: $" << cuentaCorriente->getSaldo() << endl;
+        
+        // Procesar movimientos de cuenta corriente
+        procesarMovimientosParaArchivo(archivo, cuentaCorriente->getMovimientos());
+        archivo << endl;
+    } else {
+        archivo << "--- SIN CUENTA CORRIENTE ---" << endl << endl;
+    }
+}
+
+/**
+ * @brief Procesa las cuentas de ahorro de un titular y escribe la informacion al archivo
+ * 
+ * @param archivo Stream del archivo donde escribir
+ * @param titular Puntero al titular
+ */
+void GestorArchivos::procesarCuentasAhorroParaArchivo(ofstream& archivo, Titular* titular) {
+    NodoDoble<CuentaBancaria*>* nodoAhorro = titular->getCuentasAhorro().getCabeza();
+    if (nodoAhorro) {
+        Persona persona = titular->getPersona();
+        cout << "Guardando cuentas de ahorro y movimientos de " << persona.getNombre() << endl;
+        
+        int contadorAhorro = 1;
+        do {
+            CuentaBancaria* cuentaAhorro = nodoAhorro->dato;
+            archivo << "--- CUENTA DE AHORRO #" << contadorAhorro << " ---" << endl;
+            archivo << "ID Cuenta: " << cuentaAhorro->getID() << endl;
+            archivo << "Tipo: " << cuentaAhorro->getTipoCuenta() << endl;
+            archivo << "Saldo Actual: $" << cuentaAhorro->getSaldo() << endl;
+            
+            // Procesar movimientos de cuenta de ahorro
+            procesarMovimientosParaArchivo(archivo, cuentaAhorro->getMovimientos());
+            archivo << endl;
+            
+            nodoAhorro = nodoAhorro->siguiente;
+            contadorAhorro++;
+        } while (nodoAhorro != titular->getCuentasAhorro().getCabeza());
+    } else {
+        archivo << "--- SIN CUENTAS DE AHORRO ---" << endl << endl;
+    }
+}
+
+/**
+ * @brief Procesa los movimientos de una cuenta y los escribe al archivo
+ * 
+ * @param archivo Stream del archivo donde escribir
+ * @param movimientos Lista de movimientos de la cuenta
+ */
+void GestorArchivos::procesarMovimientosParaArchivo(ofstream& archivo, ListaDobleCircular<Movimiento*>& movimientos) {
+    if (!movimientos.vacia()) {
+        archivo << "MOVIMIENTOS:" << endl;
+        NodoDoble<Movimiento*>* nodoMov = movimientos.getCabeza();
+        int numMov = 1;
+        do {
+            Movimiento* mov = nodoMov->dato;
+            archivo << "  " << numMov << ". ID: " << mov->getIDMovimiento() 
+                    << " | Fecha: " << mov->getFechaMov().getDia() << "/" 
+                    << mov->getFechaMov().getMes() << "/" << mov->getFechaMov().getAnio().getAnio()
+                    << " | Tipo: " << (mov->getTipo() ? "DEPOSITO" : "RETIRO")
+                    << " | Monto: $" << mov->getMonto() << endl;
+            nodoMov = nodoMov->siguiente;
+            numMov++;
+        } while (nodoMov != movimientos.getCabeza());
+    } else {
+        archivo << "Sin movimientos registrados." << endl;
+    }
+}
+
+/**
+ * @brief Genera y guarda el hash MD5 del archivo de titulares
+ */
+void GestorArchivos::generarYGuardarHashMD5() {
     string hash = generarHashMD5("titulares.txt");
     if (!hash.empty()) {
         // Guardar en la tabla hash
@@ -174,8 +248,6 @@ void GestorArchivos::guardarTitularesEnTxt(const ListaDobleCircular<Titular*>& t
     } else {
         cout << "\nNo se pudo generar el hash MD5.\n" << endl;
     }
-
-    system("pause");
 }
 
 /**

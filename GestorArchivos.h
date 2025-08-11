@@ -17,15 +17,27 @@
 #include "TablaHash.h"
 #include "Validaciones.h"
 
+// Forward declaration
+class GestorBusquedaMongo;
+
 class GestorArchivos {
 private:
     Validaciones val;
     TablaHash& hashes; // Referencia a la tabla hash del sistema
+    GestorBusquedaMongo* gestorBusquedaMongo; // Puntero al gestor de busqueda MongoDB
+    
+    // Metodos privados para procesamiento de archivos
+    void procesarTitularParaArchivo(std::ofstream& archivo, Titular* titular, int numeroTitular);
+    void procesarCuentaCorrienteParaArchivo(std::ofstream& archivo, Titular* titular);
+    void procesarCuentasAhorroParaArchivo(std::ofstream& archivo, Titular* titular);
+    void procesarMovimientosParaArchivo(std::ofstream& archivo, ListaDobleCircular<Movimiento*>& movimientos);
+    void generarYGuardarHashMD5();
     
 public:
-    GestorArchivos(TablaHash& hashTable);
+    GestorArchivos(TablaHash& hashTable, GestorBusquedaMongo* gestorMongo = nullptr);
     ~GestorArchivos();
     
+    void setGestorBusquedaMongo(GestorBusquedaMongo* gestorMongo);
     void guardarTitularesEnTxt(const ListaDobleCircular<Titular*>& titulares);
     void generarPDFTitulares();
     std::string generarHashMD5(const std::string& nombreArchivo);

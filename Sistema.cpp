@@ -18,7 +18,7 @@
 #include <iostream>
 using namespace std;
 
-Sistema::Sistema(): arbolTitulares(3), gestorArchivos(hashes), gestorTitulares(gestorConexion), operacionesBancarias(gestorConexion), gestorBusquedaMongo(gestorConexion) {
+Sistema::Sistema(): arbolTitulares(3), gestorBusquedaMongo(gestorConexion), gestorArchivos(hashes, &gestorBusquedaMongo), gestorTitulares(gestorConexion), operacionesBancarias(gestorConexion) {
     listaSucursales.agregarSucursal(Sucursal("Sucursal Central", -34.6037, -58.3816, "123"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Norte", -34.7000, -58.3000, "456"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Sur", -34.8000, -58.4000, "789"));

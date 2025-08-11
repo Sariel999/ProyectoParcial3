@@ -38,13 +38,13 @@ private:
     TablaHash hashes;
     GeneradorQR generadorQR;
     GestorConexion gestorConexion;
+    GestorBusquedaMongo gestorBusquedaMongo;
     GestorTitulares gestorTitulares;
     OperacionesBancarias operacionesBancarias;
     GestorArchivos gestorArchivos;
     GestorArchivosBinarios gestorArchivosBinarios;
     GestorBusquedas gestorBusquedas;
     MenuBusquedasBinarias menuBusquedasBinarias;
-    GestorBusquedaMongo gestorBusquedaMongo;
 
     Titular* buscarTitularPorCI(const std::string& cedula);
     void actualizarContadoresSucursales();
