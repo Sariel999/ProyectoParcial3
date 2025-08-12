@@ -70,10 +70,12 @@ public:
     bool actualizarTitularCompleto(const std::string& cedula, const std::string& jsonData);
     std::string buscarTitularCompleto(const std::string& cedula);
     std::string obtenerTodosTitulares();
+    
+    // Comando generico
+    std::string enviarComando(const std::string& comando);
 
 private:
     // Utilidades
-    std::string enviarComando(const std::string& comando);
     std::string titularToJSON(const Titular* titular);
     std::string cuentaToJSON(const CuentaBancaria* cuenta);
     std::string movimientoToJSON(const Movimiento* movimiento);

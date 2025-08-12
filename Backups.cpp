@@ -159,7 +159,8 @@ void Backups :: crearBackup (const ListaDobleCircular<Titular*>& titulares) {
         } while (actual != titulares.getCabeza());
     }
     archivo.close();
-    cout << "\n'"<< nombreArchivo << "'.\n" << endl;
+    cout << "\nBackup creado exitosamente: '" << nombreArchivo << "'.\n" << endl;
+    cout << "Ubicacion: " << nombreArchivo << endl;
     system("pause");
 }
 

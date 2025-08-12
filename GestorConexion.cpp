@@ -1226,3 +1226,43 @@ std::vector<Titular*> GestorConexion::obtenerTodosTitulares() {
     
     return titulares;
 }
+
+bool GestorConexion::exportarBaseDatos(const std::string& nombreArchivo) {
+    if (!conectado || !cliente) {
+        establecerError("No hay conexion activa para exportar base de datos");
+        return false;
+    }
+
+    std::cout << "Solicitando exportacion completa de la base de datos..." << std::endl;
+    
+    // Enviar comando al servidor para exportar toda la base de datos
+    std::string respuesta = cliente->enviarComando("EXPORT_DATABASE:" + nombreArchivo);
+    
+    if (respuesta.find("SUCCESS") != std::string::npos) {
+        std::cout << "Base de datos exportada exitosamente: " << nombreArchivo << std::endl;
+        return true;
+    } else {
+        establecerError("Error al exportar base de datos: " + respuesta);
+        return false;
+    }
+}
+
+bool GestorConexion::importarBaseDatos(const std::string& nombreArchivo) {
+    if (!conectado || !cliente) {
+        establecerError("No hay conexion activa para importar base de datos");
+        return false;
+    }
+
+    std::cout << "Solicitando importacion completa de la base de datos..." << std::endl;
+    
+    // Enviar comando al servidor para importar toda la base de datos
+    std::string respuesta = cliente->enviarComando("IMPORT_DATABASE:" + nombreArchivo);
+    
+    if (respuesta.find("SUCCESS") != std::string::npos) {
+        std::cout << "Base de datos importada exitosamente desde: " << nombreArchivo << std::endl;
+        return true;
+    } else {
+        establecerError("Error al importar base de datos: " + respuesta);
+        return false;
+    }
+}

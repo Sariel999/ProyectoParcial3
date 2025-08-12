@@ -18,7 +18,7 @@
 #include <iostream>
 using namespace std;
 
-Sistema::Sistema(): arbolTitulares(3), gestorBusquedaMongo(gestorConexion), gestorArchivos(hashes, &gestorBusquedaMongo), gestorTitulares(gestorConexion), operacionesBancarias(gestorConexion) {
+Sistema::Sistema(): arbolTitulares(3), gestorBusquedaMongo(gestorConexion), gestorArchivos(hashes, &gestorBusquedaMongo), gestorTitulares(gestorConexion), operacionesBancarias(gestorConexion), menuAdministrador(gestorConexion) {
     listaSucursales.agregarSucursal(Sucursal("Sucursal Central", -34.6037, -58.3816, "123"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Norte", -34.7000, -58.3000, "456"));
     listaSucursales.agregarSucursal(Sucursal("Sucursal Sur", -34.8000, -58.4000, "789"));
@@ -458,6 +458,41 @@ void Sistema::configurarModoServidor() {
     cout << "Sistema configurado como servidor local." << endl;
     cout << "Funcionara sin sincronizacion con MongoDB." << endl;
     system("pause");
+}
+
+void Sistema::configurarModoAdministrador() {
+    // Primero validar la contraseña
+    if (!menuAdministrador.validarContrasenaAdmin()) {
+        return; // Si la contraseña es incorrecta, salir
+    }
+    
+    // Si la contraseña es correcta, proceder con la conexión como cliente
+    string ip;
+    int puerto;
+    
+    cout << "Ingrese la IP del servidor (localhost): ";
+    getline(cin, ip);
+    if (ip.empty()) ip = "localhost";
+    
+    cout << "Ingrese el puerto del servidor (8888): ";
+    string puertoStr;
+    getline(cin, puertoStr);
+    puerto = puertoStr.empty() ? 8888 : stoi(puertoStr);
+    
+    cout << "Conectando a " << ip << ":" << puerto << "..." << endl;
+    
+    if (gestorConexion.conectarComoCliente(ip, puerto)) {
+        cout << "Conexion establecida exitosamente!" << endl;
+        cout << "Sistema sincronizado con MongoDB." << endl;
+        system("pause");
+        
+        // Mostrar el menú de administrador
+        menuAdministrador.mostrarMenuAdministrador(titulares, arbolTitulares);
+    } else {
+        cout << "Error al conectar con el servidor." << endl;
+        cout << "Ultima razon: " << gestorConexion.obtenerUltimoError() << endl;
+        system("pause");
+    }
 }
 
 void Sistema::configurarModoCliente() {

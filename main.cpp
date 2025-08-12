@@ -12,12 +12,13 @@ int main() {
     Menu menu;
     const char* opciones[] = {
         "Ser cliente",
+        "Ser Administrador",
         "Salir"
     };
 
     int opcion;
     do {
-        opcion = menu.ingresarMenu("MICHIBANK - RED TCP", opciones, 2);
+        opcion = menu.ingresarMenu("MICHIBANK - RED TCP", opciones, 3);
         
         Sistema sistema;
         
@@ -29,6 +30,11 @@ int main() {
                 break;
                 
             case 2:
+                std::cout << "\n=== MODO ADMINISTRADOR ===" << std::endl;
+                sistema.configurarModoAdministrador();
+                break;
+                
+            case 3:
                 std::cout << "Saliendo del programa..." << std::endl;
                 break;
                 
@@ -37,7 +43,7 @@ int main() {
                 break;
         }
         
-    } while(opcion != 2);
+    } while(opcion != 3);
 
     marquesina.detener();
     return 0;

@@ -25,6 +25,10 @@ public:
     string ingresarCodigoSucursal(char msj[50]);
     float ingresarCoordenada(char msj[50], bool esLatitud = true);
     string ingresarNombreArchivo(const char* mensaje);
+    string ingresarContrasena(const char* mensaje);
+    string ingresarNombreBackupDB(const char* mensaje);
+    string ingresarNombreBackupDBConCancelacion(const char* mensaje);
+
 };
 
 #endif

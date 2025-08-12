@@ -65,6 +65,10 @@ public:
     bool enviarMensaje(const std::string& mensaje);
     std::string recibirMensajes();
     
+    // Backup y Restore de Base de Datos
+    bool exportarBaseDatos(const std::string& nombreArchivo);
+    bool importarBaseDatos(const std::string& nombreArchivo);
+    
     // TitularCompleto
     bool sincronizarTitularCompleto(const Titular* titular);
     

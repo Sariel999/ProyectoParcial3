@@ -635,3 +635,191 @@ std::string Validaciones::ingresarNombreArchivo(const char* mensaje) {
 
     return entrada;
 }
+
+std::string Validaciones::ingresarContrasena(const char* mensaje) {
+    string contrasena;
+    char c;
+    
+    cout << mensaje;
+    
+    while ((c = getch()) != 13) { // Enter para terminar
+        if (c == 8) { // Backspace
+            if (!contrasena.empty()) {
+                contrasena.pop_back();
+                cout << "\b \b";
+            }
+        } else if (c >= 32 && c <= 126) { // Caracteres imprimibles
+            contrasena += c;
+            cout << "*"; // Mostrar asterisco en lugar del carácter
+        }
+    }
+    cout << endl;
+    return contrasena;
+}
+
+std::string Validaciones::ingresarNombreBackupDB(const char* mensaje) {
+    string entrada;
+    bool valido = false;
+    
+    do {
+        cout << mensaje;
+        getline(cin, entrada);
+
+        // Verificar que la entrada no esté vacía
+        if (entrada.empty()) {
+            cout << "\nEl nombre del archivo no puede estar vacio. Intente de nuevo.\n" << endl;
+            continue;
+        }
+
+        // Verificar formato: YYYYMMDD_HHMMSS_db.json (23 caracteres total)
+        if (entrada.length() != 23) {
+            cout << "\nFormato invalido. Debe ser: YYYYMMDD_HHMMSS_db.json (23 caracteres)." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            cout << "Intente de nuevo.\n" << endl;
+            continue;
+        }
+
+        // Verificar que termine con "_db.json"
+        if (entrada.substr(entrada.length() - 8) != "_db.json") {
+            cout << "\nEl archivo debe terminar con '_db.json'." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            cout << "Intente de nuevo.\n" << endl;
+            continue;
+        }
+
+        // Verificar que el primer guión bajo esté en la posición correcta (posición 8)
+        if (entrada[8] != '_') {
+            cout << "\nFormato invalido. Debe tener un guion bajo en la posicion 9." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            cout << "Intente de nuevo.\n" << endl;
+            continue;
+        }
+
+        // Verificar que los primeros 8 caracteres sean números (fecha: YYYYMMDD)
+        bool fechaValida = true;
+        for (int i = 0; i < 8; i++) {
+            if (!isdigit(entrada[i])) {
+                fechaValida = false;
+                break;
+            }
+        }
+        
+        if (!fechaValida) {
+            cout << "\nLa fecha debe contener solo numeros (YYYYMMDD)." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            cout << "Intente de nuevo.\n" << endl;
+            continue;
+        }
+
+        // Verificar que los caracteres 9-14 sean números (hora: HHMMSS)
+        bool horaValida = true;
+        for (int i = 9; i < 15; i++) {
+            if (!isdigit(entrada[i])) {
+                horaValida = false;
+                break;
+            }
+        }
+        
+        if (!horaValida) {
+            cout << "\nLa hora debe contener solo numeros (HHMMSS)." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            cout << "Intente de nuevo.\n" << endl;
+            continue;
+        }
+
+        valido = true;
+        
+    } while (!valido);
+
+    return entrada;
+}
+
+std::string Validaciones::ingresarNombreBackupDBConCancelacion(const char* mensaje) {
+    string entrada;
+    int intentos = 0;
+    const int MAX_INTENTOS = 3;
+    
+    while (intentos < MAX_INTENTOS) {
+        cout << mensaje;
+        cout << "\n(Escriba 'cancelar' para regresar al menu principal)" << endl;
+        getline(cin, entrada);
+
+        // Verificar si quiere cancelar
+        if (entrada == "cancelar" || entrada == "CANCELAR") {
+            cout << "\nOperacion cancelada. Regresando al menu..." << endl;
+            system("pause");
+            return ""; // String vacío indica cancelación
+        }
+
+        // Verificar que la entrada no esté vacía
+        if (entrada.empty()) {
+            cout << "\nEl nombre del archivo no puede estar vacio." << endl;
+            intentos++;
+            continue;
+        }
+
+        // Verificar formato: YYYYMMDD_HHMMSS_db.json (23 caracteres total)
+        if (entrada.length() != 23) {
+            cout << "\nFormato invalido. Debe ser: YYYYMMDD_HHMMSS_db.json (23 caracteres)." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            intentos++;
+            continue;
+        }
+
+        // Verificar que termine con "_db.json"
+        if (entrada.substr(entrada.length() - 8) != "_db.json") {
+            cout << "\nEl archivo debe terminar con '_db.json'." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            intentos++;
+            continue;
+        }
+
+        // Verificar que el primer guión bajo esté en la posición correcta (posición 8)
+        if (entrada[8] != '_') {
+            cout << "\nFormato invalido. Debe tener un guion bajo en la posicion 9." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            intentos++;
+            continue;
+        }
+
+        // Verificar que los primeros 8 caracteres sean números (fecha: YYYYMMDD)
+        bool fechaValida = true;
+        for (int i = 0; i < 8; i++) {
+            if (!isdigit(entrada[i])) {
+                fechaValida = false;
+                break;
+            }
+        }
+        
+        if (!fechaValida) {
+            cout << "\nLa fecha debe contener solo numeros (YYYYMMDD)." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            intentos++;
+            continue;
+        }
+
+        // Verificar que los caracteres 9-14 sean números (hora: HHMMSS)
+        bool horaValida = true;
+        for (int i = 9; i < 15; i++) {
+            if (!isdigit(entrada[i])) {
+                horaValida = false;
+                break;
+            }
+        }
+        
+        if (!horaValida) {
+            cout << "\nLa hora debe contener solo numeros (HHMMSS)." << endl;
+            cout << "Ejemplo: 20240812_115030_db.json" << endl;
+            intentos++;
+            continue;
+        }
+
+        // Si llegamos aquí, el formato es válido
+        return entrada;
+    }
+    
+    // Si se agotaron los intentos
+    cout << "\nSe agotaron los intentos. Regresando al menu principal..." << endl;
+    system("pause");
+    return ""; // String vacío indica que se agotaron los intentos
+}

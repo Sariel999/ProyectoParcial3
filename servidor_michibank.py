@@ -358,6 +358,177 @@ class MichiBankServer:
             self.log(f"Error al obtener todos los titulares: {e}")
             return "ERROR: Error de base de datos"
     
+    def exportar_base_datos_completa(self, nombre_archivo):
+        """Exporta toda la base de datos a un archivo JSON"""
+        try:
+            # Crear diccionario con todas las colecciones
+            backup_data = {}
+            
+            # Exportar colección titulares
+            titulares = list(self.db.titulares.find({}))
+            for titular in titulares:
+                titular['_id'] = str(titular['_id'])
+            backup_data['titulares'] = titulares
+            
+            # Exportar colección cuentas
+            cuentas = list(self.db.cuentas.find({}))
+            for cuenta in cuentas:
+                cuenta['_id'] = str(cuenta['_id'])
+            backup_data['cuentas'] = cuentas
+            
+            # Exportar colección movimientos
+            movimientos = list(self.db.movimientos.find({}))
+            for movimiento in movimientos:
+                movimiento['_id'] = str(movimiento['_id'])
+            backup_data['movimientos'] = movimientos
+            
+            # Exportar colección titularCompleto
+            titularCompleto = list(self.db.titularCompleto.find({}))
+            for titular in titularCompleto:
+                titular['_id'] = str(titular['_id'])
+            backup_data['titularCompleto'] = titularCompleto
+            
+            # Exportar colección chat (si existe)
+            try:
+                mensajes = list(self.db.chat.find({}))
+                for mensaje in mensajes:
+                    mensaje['_id'] = str(mensaje['_id'])
+                backup_data['chat'] = mensajes
+            except:
+                backup_data['chat'] = []
+            
+            # Metadata del backup
+            backup_data['metadata'] = {
+                'fecha_backup': datetime.now().isoformat(),
+                'version': '1.0',
+                'total_titulares': len(titulares),
+                'total_cuentas': len(cuentas),
+                'total_movimientos': len(movimientos),
+                'total_titularCompleto': len(titularCompleto),
+                'total_mensajes': len(backup_data['chat'])
+            }
+            
+            # Guardar en archivo JSON
+            with open(nombre_archivo, 'w', encoding='utf-8') as f:
+                json.dump(backup_data, f, ensure_ascii=False, indent=2)
+            
+            self.log(f"Backup completo creado: {nombre_archivo}")
+            self.log(f"Titulares exportados: {len(titulares)}")
+            self.log(f"Cuentas exportadas: {len(cuentas)}")
+            self.log(f"Movimientos exportados: {len(movimientos)}")
+            self.log(f"TitularCompleto exportados: {len(titularCompleto)}")
+            self.log(f"Mensajes exportados: {len(backup_data['chat'])}")
+            
+            return "SUCCESS: Backup de base de datos creado exitosamente"
+            
+        except Exception as e:
+            self.log(f"Error al exportar base de datos: {e}")
+            return f"ERROR: Error al crear backup - {str(e)}"
+    
+    def importar_base_datos_completa(self, nombre_archivo):
+        """Importa toda la base de datos desde un archivo JSON"""
+        try:
+            # Verificar que el archivo existe
+            import os
+            if not os.path.exists(nombre_archivo):
+                return f"ERROR: Archivo {nombre_archivo} no encontrado"
+            
+            # Leer archivo JSON
+            with open(nombre_archivo, 'r', encoding='utf-8') as f:
+                backup_data = json.load(f)
+            
+            # Validar estructura básica del backup
+            if 'metadata' not in backup_data:
+                return "ERROR: Archivo de backup invalido - falta metadata"
+            
+            # ADVERTENCIA: Esta operación borra toda la base de datos actual
+            self.log("ATENCION: Eliminando todos los datos actuales...")
+            
+            # Limpiar TODAS las colecciones existentes
+            self.db.titulares.delete_many({})
+            self.db.cuentas.delete_many({})
+            self.db.movimientos.delete_many({})
+            self.db.titularCompleto.delete_many({})
+            try:
+                self.db.chat.delete_many({})
+            except:
+                pass  # La colección chat puede no existir
+            
+            # Contadores para el reporte
+            titulares_importados = 0
+            cuentas_importadas = 0
+            movimientos_importados = 0
+            titularCompleto_importados = 0
+            mensajes_importados = 0
+            
+            # Restaurar colección titulares
+            if 'titulares' in backup_data and backup_data['titulares']:
+                for titular in backup_data['titulares']:
+                    # Remover _id para que MongoDB genere uno nuevo
+                    if '_id' in titular:
+                        del titular['_id']
+                
+                resultado = self.db.titulares.insert_many(backup_data['titulares'])
+                titulares_importados = len(resultado.inserted_ids)
+            
+            # Restaurar colección cuentas
+            if 'cuentas' in backup_data and backup_data['cuentas']:
+                for cuenta in backup_data['cuentas']:
+                    # Remover _id para que MongoDB genere uno nuevo
+                    if '_id' in cuenta:
+                        del cuenta['_id']
+                
+                resultado = self.db.cuentas.insert_many(backup_data['cuentas'])
+                cuentas_importadas = len(resultado.inserted_ids)
+            
+            # Restaurar colección movimientos
+            if 'movimientos' in backup_data and backup_data['movimientos']:
+                for movimiento in backup_data['movimientos']:
+                    # Remover _id para que MongoDB genere uno nuevo
+                    if '_id' in movimiento:
+                        del movimiento['_id']
+                
+                resultado = self.db.movimientos.insert_many(backup_data['movimientos'])
+                movimientos_importados = len(resultado.inserted_ids)
+            
+            # Restaurar colección titularCompleto
+            if 'titularCompleto' in backup_data and backup_data['titularCompleto']:
+                for titular in backup_data['titularCompleto']:
+                    # Remover _id para que MongoDB genere uno nuevo
+                    if '_id' in titular:
+                        del titular['_id']
+                
+                resultado = self.db.titularCompleto.insert_many(backup_data['titularCompleto'])
+                titularCompleto_importados = len(resultado.inserted_ids)
+            
+            # Restaurar chat (si existe en el backup)
+            if 'chat' in backup_data and backup_data['chat']:
+                for mensaje in backup_data['chat']:
+                    # Remover _id para que MongoDB genere uno nuevo
+                    if '_id' in mensaje:
+                        del mensaje['_id']
+                
+                resultado = self.db.chat.insert_many(backup_data['chat'])
+                mensajes_importados = len(resultado.inserted_ids)
+            
+            # Log del resultado
+            self.log(f"Restauracion completa desde: {nombre_archivo}")
+            self.log(f"Titulares restaurados: {titulares_importados}")
+            self.log(f"Cuentas restauradas: {cuentas_importadas}")
+            self.log(f"Movimientos restaurados: {movimientos_importados}")
+            self.log(f"TitularCompleto restaurados: {titularCompleto_importados}")
+            self.log(f"Mensajes restaurados: {mensajes_importados}")
+            
+            if 'metadata' in backup_data:
+                metadata = backup_data['metadata']
+                self.log(f"Backup original del: {metadata.get('fecha_backup', 'N/A')}")
+            
+            return f"SUCCESS: Base de datos restaurada - {titulares_importados} titulares, {cuentas_importadas} cuentas, {movimientos_importados} movimientos, {titularCompleto_importados} titularCompleto, {mensajes_importados} mensajes"
+            
+        except Exception as e:
+            self.log(f"Error al importar base de datos: {e}")
+            return f"ERROR: Error al restaurar backup - {str(e)}"
+    
     def procesar_comando(self, comando):
         """Procesa un comando recibido del cliente"""
         try:
@@ -433,6 +604,14 @@ class MichiBankServer:
             
             elif comando == "GET_ALL_TITULARES":
                 return self.obtener_todos_titulares()
+            
+            elif comando.startswith("EXPORT_DATABASE:"):
+                nombre_archivo = comando.split(":", 1)[1]
+                return self.exportar_base_datos_completa(nombre_archivo)
+            
+            elif comando.startswith("IMPORT_DATABASE:"):
+                nombre_archivo = comando.split(":", 1)[1]
+                return self.importar_base_datos_completa(nombre_archivo)
             
             else:
                 return "ERROR: Comando no reconocido"
