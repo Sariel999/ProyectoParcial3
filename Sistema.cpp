@@ -254,7 +254,7 @@ Titular* Sistema::buscarTitularPorCI(const std::string& ci) {
  * 
  */
 void Sistema::crearCuenta() {
-    gestorTitulares.crearCuenta(titulares, listaSucursales, arbolTitulares);
+    gestorTitulares.crearCuentaAtomica(titulares, listaSucursales, arbolTitulares);
 }
 /**
  * @brief Realiza un deposito en una cuenta bancaria de un titular.

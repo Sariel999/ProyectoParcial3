@@ -1390,3 +1390,70 @@ bool GestorConexion::verificarSaldoSuficiente(const std::string& cedula, const s
     
     return saldoActual >= monto;
 }
+
+bool GestorConexion::crearCuentaAtomica(const std::string& cedula, CuentaBancaria* cuenta, 
+                                       const std::string& tipoCuenta) {
+    if (!conectado || !cliente || modoServidor) {
+        establecerError("No conectado como cliente TCP");
+        return false;
+    }
+
+    try {
+        // Crear JSON de la cuenta para enviar al servidor
+        std::ostringstream cuentaJson;
+        cuentaJson << "{";
+        cuentaJson << "\"id\":\"" << cuenta->getID() << "\",";
+        cuentaJson << "\"saldo\":" << cuenta->getSaldo() << ",";
+        cuentaJson << "\"tipoCuenta\":\"" << cuenta->getTipoCuenta() << "\",";
+        cuentaJson << "\"fechaCreacion\":\"" << cuenta->getFechaCre().getDia() << "/"
+                  << cuenta->getFechaCre().getMes() << "/"
+                  << cuenta->getFechaCre().getAnio() << "\",";
+        cuentaJson << "\"movimientos\":[]";  // Nueva cuenta sin movimientos
+        cuentaJson << "}";
+
+        // Construir comando con formato: CREAR_CUENTA_ATOMICA:cedula:tipoCuenta:cuentaJson
+        std::string comando = "CREAR_CUENTA_ATOMICA:" + cedula + ":" + tipoCuenta + ":" + cuentaJson.str();
+        
+        std::string respuesta = cliente->enviarComando(comando);
+        
+        if (respuesta == "OK") {
+            std::cout << "Cuenta " << tipoCuenta << " creada atomicamente para titular " 
+                      << cedula << std::endl;
+            return true;
+        } else {
+            establecerError("Error en creacion atomica de cuenta: " + respuesta);
+            return false;
+        }
+        
+    } catch (...) {
+        establecerError("Error durante la creacion atomica de cuenta");
+        return false;
+    }
+}
+
+bool GestorConexion::verificarCuentaCorrienteExiste(const std::string& cedula) {
+    if (!conectado || !cliente || modoServidor) {
+        establecerError("No conectado como cliente TCP");
+        return false;
+    }
+
+    try {
+        // Construir comando con formato: VERIFICAR_CUENTA_CORRIENTE:cedula
+        std::string comando = "VERIFICAR_CUENTA_CORRIENTE:" + cedula;
+        
+        std::string respuesta = cliente->enviarComando(comando);
+        
+        if (respuesta == "TRUE") {
+            return true;
+        } else if (respuesta == "FALSE") {
+            return false;
+        } else {
+            establecerError("Error al verificar cuenta corriente: " + respuesta);
+            return false;
+        }
+        
+    } catch (...) {
+        establecerError("Error durante la verificacion de cuenta corriente");
+        return false;
+    }
+}

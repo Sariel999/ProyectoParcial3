@@ -491,6 +491,86 @@ class MichiBankServer:
             self.log(f"Error al obtener saldo atomico: {e}")
             return "ERROR: Error de base de datos"
     
+    def crear_cuenta_atomica(self, cedula, tipo_cuenta, cuenta_data):
+        """Crea una cuenta atomicamente sin riesgo de concurrencia"""
+        try:
+            cuenta = json.loads(cuenta_data)
+            
+            # Verificar que el titular existe
+            titular = self.db.titularCompleto.find_one({'cedula': cedula})
+            if not titular:
+                return "ERROR: Titular no encontrado"
+            
+            if tipo_cuenta == "CORRIENTE":
+                # Verificar que no tenga cuenta corriente ya
+                if titular.get('cuentaCorriente') is not None:
+                    return "ERROR: Ya tiene cuenta corriente"
+                
+                # Crear cuenta corriente atomicamente
+                result = self.db.titularCompleto.update_one(
+                    {"cedula": cedula, "cuentaCorriente": None},  # Solo si no tiene
+                    {
+                        "$set": {
+                            "cuentaCorriente": cuenta,
+                            "fechaActualizacion": datetime.now().isoformat()
+                        }
+                    }
+                )
+                
+                if result.matched_count > 0:
+                    # Tambien insertar en coleccion independiente de cuentas
+                    cuenta["cedulaTitular"] = cedula
+                    cuenta["fechaRegistro"] = datetime.now().isoformat()
+                    self.db.cuentas.insert_one(cuenta)
+                    
+                    self.log(f"Cuenta corriente creada atomicamente para titular {cedula}")
+                    return "OK"
+                else:
+                    return "ERROR: Ya tiene cuenta corriente o titular no encontrado"
+                    
+            elif tipo_cuenta == "AHORRO":
+                # Agregar a array de cuentas de ahorro
+                result = self.db.titularCompleto.update_one(
+                    {"cedula": cedula},
+                    {
+                        "$push": {"cuentasAhorro": cuenta},  # $push nunca sobrescribe
+                        "$set": {"fechaActualizacion": datetime.now().isoformat()}
+                    }
+                )
+                
+                if result.matched_count > 0:
+                    # Tambien insertar en coleccion independiente de cuentas
+                    cuenta["cedulaTitular"] = cedula
+                    cuenta["fechaRegistro"] = datetime.now().isoformat()
+                    self.db.cuentas.insert_one(cuenta)
+                    
+                    self.log(f"Cuenta de ahorro creada atomicamente para titular {cedula}")
+                    return "OK"
+                else:
+                    return "ERROR: Titular no encontrado"
+            else:
+                return "ERROR: Tipo de cuenta invalido"
+                
+        except DuplicateKeyError:
+            return "ERROR: La cuenta ya existe"
+        except Exception as e:
+            self.log(f"Error en creacion atomica de cuenta: {e}")
+            return "ERROR: Error de base de datos"
+    
+    def verificar_cuenta_corriente(self, cedula):
+        """Verifica si un titular ya tiene cuenta corriente"""
+        try:
+            titular = self.db.titularCompleto.find_one({'cedula': cedula})
+            if not titular:
+                return "ERROR: Titular no encontrado"
+            
+            tiene_corriente = titular.get('cuentaCorriente') is not None
+            return "TRUE" if tiene_corriente else "FALSE"
+            
+        except Exception as e:
+            self.log(f"Error al verificar cuenta corriente: {e}")
+            return "ERROR: Error de base de datos"
+    
     def obtener_todos_titulares(self):
         """Obtiene todos los titulares completos de la base de datos"""
         try:
@@ -775,6 +855,17 @@ class MichiBankServer:
                 cedula = partes[1]
                 id_cuenta = partes[2]
                 return self.obtener_saldo_atomico(cedula, id_cuenta)
+            
+            elif comando.startswith("CREAR_CUENTA_ATOMICA:"):
+                partes = comando.split(":", 3)
+                cedula = partes[1]
+                tipo_cuenta = partes[2]
+                cuenta_data = partes[3]
+                return self.crear_cuenta_atomica(cedula, tipo_cuenta, cuenta_data)
+            
+            elif comando.startswith("VERIFICAR_CUENTA_CORRIENTE:"):
+                cedula = comando.split(":", 1)[1]
+                return self.verificar_cuenta_corriente(cedula)
             
             elif comando == "GET_ALL_TITULARES":
                 return self.obtener_todos_titulares()

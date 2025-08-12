@@ -81,6 +81,11 @@ public:
     bool verificarSaldoSuficiente(const std::string& cedula, const std::string& idCuenta, 
                                  float monto);
     
+    // Operaciones atomicas para cuentas (sin riesgo de concurrencia)
+    bool crearCuentaAtomica(const std::string& cedula, CuentaBancaria* cuenta, 
+                           const std::string& tipoCuenta);
+    bool verificarCuentaCorrienteExiste(const std::string& cedula);
+    
     // Utilidades
     void mostrarEstadoConexion() const;
     std::string obtenerUltimoError() const;

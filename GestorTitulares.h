@@ -41,6 +41,11 @@ public:
     // GESTION DE CUENTAS BANCARIAS
     void crearCuenta(ListaDobleCircular<Titular*>& titulares, ListaSucursales& listaSucursales, BPlusTreeTitulares& arbolTitulares);
     
+    // CREACION ATOMICA DE CUENTAS (sin riesgo de concurrencia)
+    void crearCuentaAtomica(ListaDobleCircular<Titular*>& titulares, ListaSucursales& listaSucursales, BPlusTreeTitulares& arbolTitulares);
+    bool ejecutarCreacionCuentaAtomica(const std::string& cedula, CuentaBancaria* cuenta, 
+                                      const std::string& tipoCuenta);
+    
     // GESTION DE CONEXION MONGODB
     void configurarModoServidor();
     void configurarModoCliente();

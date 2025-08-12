@@ -426,3 +426,145 @@ void GestorTitulares::sincronizarTitularCompleto(const Titular* titular) {
     }
 }
 
+/**
+ * @brief Crea una cuenta bancaria de forma atomica sin riesgo de concurrencia
+ * @param titulares Lista de titulares del sistema
+ * @param listaSucursales Lista de sucursales disponibles
+ * @param arbolTitulares Arbol B+ para busquedas eficientes
+ */
+void GestorTitulares::crearCuentaAtomica(ListaDobleCircular<Titular*>& titulares, 
+                                        ListaSucursales& listaSucursales, 
+                                        BPlusTreeTitulares& arbolTitulares) {
+    system("cls");
+    cout << "\n--- CREAR CUENTA ATOMICA ---" << endl;
+    cout << "Esta operacion es segura contra concurrencia multiple" << endl;
+    
+    bool verificarBD = gestorConexion.estaConectado();
+    if (!verificarBD) {
+        cout << "\nNo hay conexion con MongoDB. No se pueden crear cuentas atomicas." << endl;
+        system("pause");
+        return;
+    }
+    
+    string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular: ");
+    
+    // Verificar que el titular existe en MongoDB
+    Titular* titular = gestorBusqueda.obtenerTitularFresco(cedula);
+    if (!titular) {
+        cout << "Titular no encontrado en la base de datos." << endl;
+        cout << "\nOpciones:" << endl;
+        cout << "1. Verificar que el titular exista en MongoDB" << endl;
+        cout << "2. Verificar la conexion a la base de datos" << endl;
+        cout << "3. Registrar el titular primero" << endl;
+        
+        system("pause");
+        return;
+    }
+    
+    // Mostrar información actual del titular
+    cout << "\nTitular encontrado: " << titular->getPersona().getNombre() 
+         << " " << titular->getPersona().getApellido() << endl;
+    
+    // Mostrar cuentas existentes
+    bool tieneCuentaCorriente = titular->getCuentaCorriente() != nullptr;
+    int numCuentasAhorro = 0;
+    if (!titular->getCuentasAhorro().vacia()) {
+        NodoDoble<CuentaBancaria*>* nodo = titular->getCuentasAhorro().getCabeza();
+        if (nodo) {
+            do {
+                numCuentasAhorro++;
+                nodo = nodo->siguiente;
+            } while (nodo != titular->getCuentasAhorro().getCabeza());
+        }
+    }
+    
+    cout << "\nCuentas actuales:" << endl;
+    cout << "- Cuenta Corriente: " << (tieneCuentaCorriente ? "SI" : "NO") << endl;
+    cout << "- Cuentas de Ahorro: " << numCuentasAhorro << endl;
+    
+    // Seleccionar sucursal
+    cout << "\nSeleccione la sucursal para la cuenta:\n";
+    listaSucursales.mostrarSucursales();
+    string idSucursal = val.ingresarCodigoSucursal((char*)"\nIngrese el ID de la sucursal: ");
+    if (!listaSucursales.existeSucursal(idSucursal)) {
+        cout << "\nSucursal no encontrada." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    // Seleccionar tipo de cuenta
+    string tipo = val.ingresarCadena((char*)"\nIngrese tipo de cuenta (Corriente/Ahorro): ");
+    for (char& c : tipo) c = toupper(c);
+    
+    if (tipo != "CORRIENTE" && tipo != "AHORRO") {
+        cout << "\nTipo de cuenta no valido. Use 'Corriente' o 'Ahorro'." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    // Verificar cuenta corriente atomicamente si es necesario
+    if (tipo == "CORRIENTE") {
+        if (gestorConexion.verificarCuentaCorrienteExiste(cedula)) {
+            cout << "\nEste titular ya tiene una cuenta corriente." << endl;
+            delete titular;
+            system("pause");
+            return;
+        }
+    }
+    
+    // Crear nueva cuenta
+    CuentaBancaria* nuevaCuenta = new CuentaBancaria(idSucursal);
+    nuevaCuenta->setTipoCuenta(tipo);
+    
+    cout << "\nDatos de la nueva cuenta:" << endl;
+    cout << "ID: " << nuevaCuenta->getID() << endl;
+    cout << "Tipo: " << nuevaCuenta->getTipoCuenta() << endl;
+    cout << "Sucursal: " << idSucursal << endl;
+    cout << "Saldo inicial: $" << nuevaCuenta->getSaldo() << endl;
+    
+    // Ejecutar creacion atomica
+    bool exito = ejecutarCreacionCuentaAtomica(cedula, nuevaCuenta, tipo);
+    
+    if (exito) {
+        // Actualizar contador de sucursal localmente
+        NodoSucursal* nodo = listaSucursales.getCabeza();
+        while (nodo != nullptr) {
+            if (nodo->sucursal.getIdSucursal() == idSucursal) {
+                nodo->sucursal.incrementarContadorCuentas();
+                break;
+            }
+            nodo = nodo->siguiente;
+        }
+        
+        cout << "\nCuenta creada atomicamente exitosamente." << endl;
+        cout << "Operacion protegida contra concurrencia multiple." << endl;
+        cout << "Cuenta sincronizada con base de datos MongoDB." << endl;
+        
+        // Crear backup local
+        Backups backup;
+        backup.crearBackup(titulares);
+    } else {
+        cout << "\nError al crear la cuenta atomica." << endl;
+        cout << "Razon: " << gestorConexion.obtenerUltimoError() << endl;
+    }
+    
+    delete nuevaCuenta; // Limpiar memoria local
+    delete titular;     // Limpiar titular fresco
+    system("pause");
+}
+
+/**
+ * @brief Ejecuta la creacion atomica de una cuenta en la base de datos
+ * @param cedula Cedula del titular
+ * @param cuenta Puntero a la cuenta a crear
+ * @param tipoCuenta Tipo de cuenta (CORRIENTE o AHORRO)
+ * @return true si fue exitoso, false en caso contrario
+ */
+bool GestorTitulares::ejecutarCreacionCuentaAtomica(const std::string& cedula, 
+                                                   CuentaBancaria* cuenta, 
+                                                   const std::string& tipoCuenta) {
+    return gestorConexion.crearCuentaAtomica(cedula, cuenta, tipoCuenta);
+}
+
