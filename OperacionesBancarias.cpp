@@ -406,3 +406,301 @@ void OperacionesBancarias::sincronizarTitularCompleto(const Titular* titular) {
         gestorConexion.sincronizarTitularCompleto(titular);
     }
 }
+
+/**
+ * @brief Realiza un deposito atomico sin riesgo de concurrencia
+ * @param titulares Lista de titulares del sistema
+ */
+void OperacionesBancarias::realizarDepositoAtomico(ListaDobleCircular<Titular*>& titulares) {
+    system("cls");
+    cout << "\n--- REALIZAR DEPOSITO ATOMICO ---" << endl;
+    cout << "Esta operacion es segura contra concurrencia multiple" << endl;
+    
+    // Verificar conexion con MongoDB
+    if (!gestorConexion.estaConectado()) {
+        cout << "\nNo hay conexion con MongoDB. No se pueden realizar operaciones atomicas." << endl;
+        system("pause");
+        return;
+    }
+    
+    string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular: ");
+    
+    // Obtener lista de cuentas disponibles desde MongoDB
+    Titular* titular = gestorBusqueda.obtenerTitularFresco(cedula);
+    if (!titular) {
+        cout << "\nTitular no encontrado." << endl;
+        system("pause");
+        return;
+    }
+    
+    // Mostrar cuentas disponibles
+    cout << "\nCuentas disponibles:" << endl;
+    bool tieneCuentaCorriente = titular->getCuentaCorriente() != nullptr;
+    bool tieneCuentasAhorro = !titular->getCuentasAhorro().vacia();
+    
+    if (!tieneCuentaCorriente && !tieneCuentasAhorro) {
+        cout << "Este titular no tiene cuentas registradas." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    if (tieneCuentaCorriente) {
+        float saldo = consultarSaldoActual(cedula, titular->getCuentaCorriente()->getID());
+        cout << "- Cuenta Corriente - ID: " << titular->getCuentaCorriente()->getID() 
+             << " (Saldo actual: $" << saldo << ")" << endl;
+    }
+    
+    if (tieneCuentasAhorro) {
+        for (CuentaBancaria* cuenta : titular->getCuentasAhorro()) {
+            float saldo = consultarSaldoActual(cedula, cuenta->getID());
+            cout << "- Cuenta de Ahorro - ID: " << cuenta->getID() 
+                 << " (Saldo actual: $" << saldo << ")" << endl;
+        }
+    }
+    
+    // Seleccionar cuenta
+    string idCuenta = val.ingresarNumeros((char*)"Ingrese numero de cuenta: ");
+    
+    // Verificar que la cuenta existe
+    bool cuentaValida = false;
+    if (tieneCuentaCorriente && titular->getCuentaCorriente()->getID() == idCuenta) {
+        cuentaValida = true;
+    } else if (tieneCuentasAhorro) {
+        for (CuentaBancaria* cuenta : titular->getCuentasAhorro()) {
+            if (cuenta->getID() == idCuenta) {
+                cuentaValida = true;
+                break;
+            }
+        }
+    }
+    
+    if (!cuentaValida) {
+        cout << "\nNumero de cuenta no encontrado." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    float monto = val.ingresarMonto((char*)"\nIngrese el monto a depositar: ");
+    if (monto <= 0) {
+        cout << "\nEl monto debe ser mayor a 0." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    if (monto < 10.0) {
+        cout << "\nEl monto minimo de deposito es $10." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    if (monto > 10000.0) {
+        cout << "\nEl monto maximo de deposito es $10,000." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    // Obtener saldo actual antes del deposito
+    float saldoAnterior = consultarSaldoActual(cedula, idCuenta);
+    
+    // Ejecutar deposito atomico
+    bool exito = ejecutarDepositoAtomico(cedula, idCuenta, monto);
+    
+    if (exito) {
+        float saldoNuevo = consultarSaldoActual(cedula, idCuenta);
+        
+        cout << "\nDeposito atomico realizado exitosamente." << endl;
+        cout << "Saldo anterior: $" << fixed << setprecision(2) << saldoAnterior << endl;
+        cout << "Monto depositado: $" << fixed << setprecision(2) << monto << endl;
+        cout << "Nuevo saldo: $" << fixed << setprecision(2) << saldoNuevo << endl;
+        cout << "Operacion protegida contra concurrencia multiple." << endl;
+        
+        // Crear backup local
+        Backups backup;
+        backup.crearBackup(titulares);
+    } else {
+        cout << "\nError al realizar el deposito atomico." << endl;
+        cout << "Razon: " << gestorConexion.obtenerUltimoError() << endl;
+    }
+    
+    delete titular;
+    system("pause");
+}
+
+/**
+ * @brief Realiza un retiro atomico sin riesgo de concurrencia
+ * @param titulares Lista de titulares del sistema
+ */
+void OperacionesBancarias::realizarRetiroAtomico(ListaDobleCircular<Titular*>& titulares) {
+    system("cls");
+    cout << "\n--- REALIZAR RETIRO ATOMICO ---" << endl;
+    cout << "Esta operacion es segura contra concurrencia multiple" << endl;
+    
+    // Verificar conexion con MongoDB
+    if (!gestorConexion.estaConectado()) {
+        cout << "\nNo hay conexion con MongoDB. No se pueden realizar operaciones atomicas." << endl;
+        system("pause");
+        return;
+    }
+    
+    string cedula = val.ingresarCedula((char*)"\nIngrese cedula del titular: ");
+    
+    // Obtener lista de cuentas disponibles desde MongoDB
+    Titular* titular = gestorBusqueda.obtenerTitularFresco(cedula);
+    if (!titular) {
+        cout << "\nTitular no encontrado." << endl;
+        system("pause");
+        return;
+    }
+    
+    // Mostrar cuentas disponibles con saldos actuales
+    cout << "\nCuentas disponibles:" << endl;
+    bool tieneCuentaCorriente = titular->getCuentaCorriente() != nullptr;
+    bool tieneCuentasAhorro = !titular->getCuentasAhorro().vacia();
+    
+    if (!tieneCuentaCorriente && !tieneCuentasAhorro) {
+        cout << "Este titular no tiene cuentas registradas." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    if (tieneCuentaCorriente) {
+        float saldo = consultarSaldoActual(cedula, titular->getCuentaCorriente()->getID());
+        cout << "- Cuenta Corriente - ID: " << titular->getCuentaCorriente()->getID() 
+             << " (Saldo actual: $" << saldo << ")" << endl;
+    }
+    
+    if (tieneCuentasAhorro) {
+        for (CuentaBancaria* cuenta : titular->getCuentasAhorro()) {
+            float saldo = consultarSaldoActual(cedula, cuenta->getID());
+            cout << "- Cuenta de Ahorro - ID: " << cuenta->getID() 
+                 << " (Saldo actual: $" << saldo << ")" << endl;
+        }
+    }
+    
+    // Seleccionar cuenta
+    string idCuenta = val.ingresarNumeros((char*)"Ingrese numero de cuenta: ");
+    
+    // Verificar que la cuenta existe
+    bool cuentaValida = false;
+    if (tieneCuentaCorriente && titular->getCuentaCorriente()->getID() == idCuenta) {
+        cuentaValida = true;
+    } else if (tieneCuentasAhorro) {
+        for (CuentaBancaria* cuenta : titular->getCuentasAhorro()) {
+            if (cuenta->getID() == idCuenta) {
+                cuentaValida = true;
+                break;
+            }
+        }
+    }
+    
+    if (!cuentaValida) {
+        cout << "\nNumero de cuenta no encontrado." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    // Mostrar saldo actual antes de pedir el monto
+    float saldoActual = consultarSaldoActual(cedula, idCuenta);
+    cout << "\nSaldo actual disponible: $" << saldoActual << endl;
+    
+    float monto = val.ingresarMonto((char*)"\nIngrese el monto a retirar: ");
+    
+    if (monto <= 0) {
+        cout << "\nEl monto debe ser mayor a 0." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    if (monto < 10.0) {
+        cout << "\nEl monto minimo de retiro es $10." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    // Verificar saldo suficiente con datos mas recientes
+    if (!gestorConexion.verificarSaldoSuficiente(cedula, idCuenta, monto)) {
+        cout << "\nSaldo insuficiente para realizar el retiro." << endl;
+        delete titular;
+        system("pause");
+        return;
+    }
+    
+    // Ejecutar retiro atomico
+    bool exito = ejecutarRetiroAtomico(cedula, idCuenta, monto);
+    
+    if (exito) {
+        float saldoNuevo = consultarSaldoActual(cedula, idCuenta);
+        
+        cout << "\nRetiro atomico realizado exitosamente." << endl;
+        cout << "Saldo anterior: $" << fixed << setprecision(2) << saldoActual << endl;
+        cout << "Monto retirado: $" << fixed << setprecision(2) << monto << endl;
+        cout << "Nuevo saldo: $" << fixed << setprecision(2) << saldoNuevo << endl;
+        cout << "Operacion protegida contra concurrencia multiple." << endl;
+        
+        // Crear backup local
+        Backups backup;
+        backup.crearBackup(titulares);
+    } else {
+        cout << "\nError al realizar el retiro atomico." << endl;
+        cout << "Razon: " << gestorConexion.obtenerUltimoError() << endl;
+    }
+    
+    delete titular;
+    system("pause");
+}
+
+/**
+ * @brief Ejecuta un deposito atomico en la base de datos
+ * @param cedula Cedula del titular
+ * @param idCuenta ID de la cuenta
+ * @param monto Monto a depositar
+ * @return true si fue exitoso, false en caso contrario
+ */
+bool OperacionesBancarias::ejecutarDepositoAtomico(const std::string& cedula, const std::string& idCuenta, 
+                                                  float monto) {
+    // Crear movimiento local para enviar al servidor
+    int numMov = 1; // El servidor manejara la numeracion automaticamente
+    Movimiento* mov = new Movimiento(monto, true, numMov);
+    
+    bool exito = gestorConexion.depositarAtomico(cedula, idCuenta, monto, mov);
+    
+    delete mov; // Limpiar memoria local
+    return exito;
+}
+
+/**
+ * @brief Ejecuta un retiro atomico en la base de datos
+ * @param cedula Cedula del titular
+ * @param idCuenta ID de la cuenta
+ * @param monto Monto a retirar
+ * @return true si fue exitoso, false en caso contrario
+ */
+bool OperacionesBancarias::ejecutarRetiroAtomico(const std::string& cedula, const std::string& idCuenta, 
+                                                float monto) {
+    // Crear movimiento local para enviar al servidor
+    int numMov = 1; // El servidor manejara la numeracion automaticamente
+    Movimiento* mov = new Movimiento(monto, false, numMov);
+    
+    bool exito = gestorConexion.retirarAtomico(cedula, idCuenta, monto, mov);
+    
+    delete mov; // Limpiar memoria local
+    return exito;
+}
+
+/**
+ * @brief Consulta el saldo actual de una cuenta directamente desde MongoDB
+ * @param cedula Cedula del titular
+ * @param idCuenta ID de la cuenta
+ * @return Saldo actual o -1.0 si hay error
+ */
+float OperacionesBancarias::consultarSaldoActual(const std::string& cedula, const std::string& idCuenta) {
+    return gestorConexion.obtenerSaldoAtomico(cedula, idCuenta);
+}

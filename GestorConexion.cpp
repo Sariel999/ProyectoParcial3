@@ -1266,3 +1266,127 @@ bool GestorConexion::importarBaseDatos(const std::string& nombreArchivo) {
         return false;
     }
 }
+
+bool GestorConexion::depositarAtomico(const std::string& cedula, const std::string& idCuenta, 
+                                     float monto, Movimiento* movimiento) {
+    if (!conectado || !cliente || modoServidor) {
+        establecerError("No conectado como cliente TCP");
+        return false;
+    }
+
+    try {
+        // Crear JSON del movimiento para enviar al servidor
+        std::ostringstream movimientoJson;
+        movimientoJson << "{";
+        movimientoJson << "\"monto\":" << movimiento->getMonto() << ",";
+        movimientoJson << "\"esDeposito\":" << (movimiento->getTipo() ? "true" : "false") << ",";
+        movimientoJson << "\"fecha\":\"" << movimiento->getFechaMov().getDia() << "/"
+                      << movimiento->getFechaMov().getMes() << "/"
+                      << movimiento->getFechaMov().getAnio().getAnio() << "\",";
+        movimientoJson << "\"hora\":\"" << movimiento->getHora().getHoras() << ":"
+                      << movimiento->getHora().getMinutos() << ":"
+                      << movimiento->getHora().getSegundos() << "\",";
+        movimientoJson << "\"numeroMovimiento\":" << movimiento->getNumeroMovimiento();
+        movimientoJson << "}";
+
+        // Construir comando con formato: DEPOSITAR_ATOMICO:cedula:idCuenta:monto:movimientoJson
+        std::string comando = "DEPOSITAR_ATOMICO:" + cedula + ":" + idCuenta + ":" + 
+                             std::to_string(monto) + ":" + movimientoJson.str();
+        
+        std::string respuesta = cliente->enviarComando(comando);
+        
+        if (respuesta == "OK") {
+            std::cout << "Deposito atomico exitoso: $" << monto 
+                      << " en cuenta " << idCuenta << std::endl;
+            return true;
+        } else {
+            establecerError("Error en deposito atomico: " + respuesta);
+            return false;
+        }
+        
+    } catch (...) {
+        establecerError("Error durante el deposito atomico");
+        return false;
+    }
+}
+
+bool GestorConexion::retirarAtomico(const std::string& cedula, const std::string& idCuenta, 
+                                   float monto, Movimiento* movimiento) {
+    if (!conectado || !cliente || modoServidor) {
+        establecerError("No conectado como cliente TCP");
+        return false;
+    }
+
+    try {
+        // Crear JSON del movimiento para enviar al servidor
+        std::ostringstream movimientoJson;
+        movimientoJson << "{";
+        movimientoJson << "\"monto\":" << movimiento->getMonto() << ",";
+        movimientoJson << "\"esDeposito\":" << (movimiento->getTipo() ? "true" : "false") << ",";
+        movimientoJson << "\"fecha\":\"" << movimiento->getFechaMov().getDia() << "/"
+                      << movimiento->getFechaMov().getMes() << "/"
+                      << movimiento->getFechaMov().getAnio().getAnio() << "\",";
+        movimientoJson << "\"hora\":\"" << movimiento->getHora().getHoras() << ":"
+                      << movimiento->getHora().getMinutos() << ":"
+                      << movimiento->getHora().getSegundos() << "\",";
+        movimientoJson << "\"numeroMovimiento\":" << movimiento->getNumeroMovimiento();
+        movimientoJson << "}";
+
+        // Construir comando con formato: RETIRAR_ATOMICO:cedula:idCuenta:monto:movimientoJson
+        std::string comando = "RETIRAR_ATOMICO:" + cedula + ":" + idCuenta + ":" + 
+                             std::to_string(monto) + ":" + movimientoJson.str();
+        
+        std::string respuesta = cliente->enviarComando(comando);
+        
+        if (respuesta == "OK") {
+            std::cout << "Retiro atomico exitoso: $" << monto 
+                      << " de cuenta " << idCuenta << std::endl;
+            return true;
+        } else {
+            establecerError("Error en retiro atomico: " + respuesta);
+            return false;
+        }
+        
+    } catch (...) {
+        establecerError("Error durante el retiro atomico");
+        return false;
+    }
+}
+
+float GestorConexion::obtenerSaldoAtomico(const std::string& cedula, const std::string& idCuenta) {
+    if (!conectado || !cliente || modoServidor) {
+        establecerError("No conectado como cliente TCP");
+        return -1.0f;
+    }
+
+    try {
+        // Construir comando con formato: OBTENER_SALDO_ATOMICO:cedula:idCuenta
+        std::string comando = "OBTENER_SALDO_ATOMICO:" + cedula + ":" + idCuenta;
+        
+        std::string respuesta = cliente->enviarComando(comando);
+        
+        if (respuesta.find("ERROR") == std::string::npos) {
+            // Convertir respuesta a float
+            float saldo = std::stof(respuesta);
+            return saldo;
+        } else {
+            establecerError("Error al obtener saldo: " + respuesta);
+            return -1.0f;
+        }
+        
+    } catch (...) {
+        establecerError("Error durante la consulta de saldo atomico");
+        return -1.0f;
+    }
+}
+
+bool GestorConexion::verificarSaldoSuficiente(const std::string& cedula, const std::string& idCuenta, 
+                                             float monto) {
+    float saldoActual = obtenerSaldoAtomico(cedula, idCuenta);
+    
+    if (saldoActual < 0) {
+        return false; // Error al obtener saldo
+    }
+    
+    return saldoActual >= monto;
+}

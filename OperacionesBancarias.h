@@ -37,6 +37,15 @@ public:
     void realizarDeposito(ListaDobleCircular<Titular*>& titulares);
     void realizarRetiro(ListaDobleCircular<Titular*>& titulares);
     
+    // OPERACIONES ATOMICAS (sin riesgo de concurrencia)
+    void realizarDepositoAtomico(ListaDobleCircular<Titular*>& titulares);
+    void realizarRetiroAtomico(ListaDobleCircular<Titular*>& titulares);
+    bool ejecutarDepositoAtomico(const std::string& cedula, const std::string& idCuenta, 
+                                float monto);
+    bool ejecutarRetiroAtomico(const std::string& cedula, const std::string& idCuenta, 
+                              float monto);
+    float consultarSaldoActual(const std::string& cedula, const std::string& idCuenta);
+    
     // FUNCIONES AUXILIARES
     Titular* buscarTitularPorCI(const ListaDobleCircular<Titular*>& titulares, const std::string& ci);
     CuentaBancaria* seleccionarCuenta(Titular* titular);

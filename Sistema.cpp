@@ -261,7 +261,7 @@ void Sistema::crearCuenta() {
  * 
  */
 void Sistema::realizarDeposito() {
-    operacionesBancarias.realizarDeposito(titulares);
+    operacionesBancarias.realizarDepositoAtomico(titulares);
 }
 
 /**
@@ -269,7 +269,7 @@ void Sistema::realizarDeposito() {
  * 
  */
 void Sistema::realizarRetiro() {
-    operacionesBancarias.realizarRetiro(titulares);
+    operacionesBancarias.realizarRetiroAtomico(titulares);
 }
 
 void Sistema::buscarMovimientosPorFecha() {

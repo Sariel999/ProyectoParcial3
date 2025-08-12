@@ -72,6 +72,15 @@ public:
     // TitularCompleto
     bool sincronizarTitularCompleto(const Titular* titular);
     
+    // Operaciones atomicas (sin riesgo de concurrencia)
+    bool depositarAtomico(const std::string& cedula, const std::string& idCuenta, 
+                         float monto, Movimiento* movimiento);
+    bool retirarAtomico(const std::string& cedula, const std::string& idCuenta, 
+                       float monto, Movimiento* movimiento);
+    float obtenerSaldoAtomico(const std::string& cedula, const std::string& idCuenta);
+    bool verificarSaldoSuficiente(const std::string& cedula, const std::string& idCuenta, 
+                                 float monto);
+    
     // Utilidades
     void mostrarEstadoConexion() const;
     std::string obtenerUltimoError() const;

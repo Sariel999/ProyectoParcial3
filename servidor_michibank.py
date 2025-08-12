@@ -339,6 +339,158 @@ class MichiBankServer:
             self.log(f"Error al buscar titular completo: {e}")
             return "ERROR: Error de base de datos"
     
+    def depositar_atomico(self, cedula, id_cuenta, monto, movimiento_data):
+        """Realiza un deposito atomico sin riesgo de concurrencia"""
+        try:
+            movimiento = json.loads(movimiento_data)
+            
+            # Determinar si es cuenta corriente o ahorro
+            titular = self.db.titularCompleto.find_one({'cedula': cedula})
+            if not titular:
+                return "ERROR: Titular no encontrado"
+            
+            es_cuenta_corriente = (titular.get('cuentaCorriente') and 
+                                 titular['cuentaCorriente'].get('id') == id_cuenta)
+            
+            if es_cuenta_corriente:
+                # Actualizar cuenta corriente atomicamente
+                result = self.db.titularCompleto.update_one(
+                    {"cedula": cedula, "cuentaCorriente.id": id_cuenta},
+                    {
+                        "$inc": {"cuentaCorriente.saldo": float(monto)},
+                        "$push": {"cuentaCorriente.movimientos": movimiento},
+                        "$set": {"fechaActualizacion": datetime.now().isoformat()}
+                    }
+                )
+            else:
+                # Actualizar cuenta de ahorro atomicamente
+                result = self.db.titularCompleto.update_one(
+                    {"cedula": cedula, "cuentasAhorro.id": id_cuenta},
+                    {
+                        "$inc": {"cuentasAhorro.$.saldo": float(monto)},
+                        "$push": {"cuentasAhorro.$.movimientos": movimiento},
+                        "$set": {"fechaActualizacion": datetime.now().isoformat()}
+                    }
+                )
+            
+            if result.matched_count > 0:
+                # Actualizar tambien la coleccion de cuentas independiente
+                self.db.cuentas.update_one(
+                    {"id": id_cuenta},
+                    {
+                        "$inc": {"saldo": float(monto)},
+                        "$set": {"fechaActualizacion": datetime.now().isoformat()}
+                    }
+                )
+                
+                # Insertar movimiento en coleccion independiente
+                movimiento["idCuenta"] = id_cuenta
+                movimiento["fechaCreacion"] = datetime.now().isoformat()
+                self.db.movimientos.insert_one(movimiento)
+                
+                self.log(f"Deposito atomico exitoso: ${monto} en cuenta {id_cuenta}")
+                return "OK"
+            else:
+                return "ERROR: No se pudo actualizar la cuenta"
+                
+        except Exception as e:
+            self.log(f"Error en deposito atomico: {e}")
+            return "ERROR: Error de base de datos"
+    
+    def retirar_atomico(self, cedula, id_cuenta, monto, movimiento_data):
+        """Realiza un retiro atomico sin riesgo de concurrencia"""
+        try:
+            movimiento = json.loads(movimiento_data)
+            
+            # Verificar saldo antes del retiro
+            titular = self.db.titularCompleto.find_one({'cedula': cedula})
+            if not titular:
+                return "ERROR: Titular no encontrado"
+            
+            saldo_actual = 0
+            es_cuenta_corriente = (titular.get('cuentaCorriente') and 
+                                 titular['cuentaCorriente'].get('id') == id_cuenta)
+            
+            if es_cuenta_corriente:
+                saldo_actual = titular['cuentaCorriente'].get('saldo', 0)
+            else:
+                for cuenta in titular.get('cuentasAhorro', []):
+                    if cuenta.get('id') == id_cuenta:
+                        saldo_actual = cuenta.get('saldo', 0)
+                        break
+            
+            if saldo_actual < float(monto):
+                return "ERROR: Saldo insuficiente"
+            
+            # Realizar retiro atomico
+            if es_cuenta_corriente:
+                result = self.db.titularCompleto.update_one(
+                    {"cedula": cedula, "cuentaCorriente.id": id_cuenta},
+                    {
+                        "$inc": {"cuentaCorriente.saldo": -float(monto)},
+                        "$push": {"cuentaCorriente.movimientos": movimiento},
+                        "$set": {"fechaActualizacion": datetime.now().isoformat()}
+                    }
+                )
+            else:
+                result = self.db.titularCompleto.update_one(
+                    {"cedula": cedula, "cuentasAhorro.id": id_cuenta},
+                    {
+                        "$inc": {"cuentasAhorro.$.saldo": -float(monto)},
+                        "$push": {"cuentasAhorro.$.movimientos": movimiento},
+                        "$set": {"fechaActualizacion": datetime.now().isoformat()}
+                    }
+                )
+            
+            if result.matched_count > 0:
+                # Actualizar tambien la coleccion de cuentas independiente
+                self.db.cuentas.update_one(
+                    {"id": id_cuenta},
+                    {
+                        "$inc": {"saldo": -float(monto)},
+                        "$set": {"fechaActualizacion": datetime.now().isoformat()}
+                    }
+                )
+                
+                # Insertar movimiento en coleccion independiente
+                movimiento["idCuenta"] = id_cuenta
+                movimiento["fechaCreacion"] = datetime.now().isoformat()
+                self.db.movimientos.insert_one(movimiento)
+                
+                self.log(f"Retiro atomico exitoso: ${monto} de cuenta {id_cuenta}")
+                return "OK"
+            else:
+                return "ERROR: No se pudo actualizar la cuenta"
+                
+        except Exception as e:
+            self.log(f"Error en retiro atomico: {e}")
+            return "ERROR: Error de base de datos"
+    
+    def obtener_saldo_atomico(self, cedula, id_cuenta):
+        """Obtiene el saldo actual de una cuenta de forma atomica"""
+        try:
+            titular = self.db.titularCompleto.find_one({'cedula': cedula})
+            if not titular:
+                return "ERROR: Titular no encontrado"
+            
+            # Buscar en cuenta corriente
+            if (titular.get('cuentaCorriente') and 
+                titular['cuentaCorriente'].get('id') == id_cuenta):
+                saldo = titular['cuentaCorriente'].get('saldo', 0)
+                return str(saldo)
+            
+            # Buscar en cuentas de ahorro
+            for cuenta in titular.get('cuentasAhorro', []):
+                if cuenta.get('id') == id_cuenta:
+                    saldo = cuenta.get('saldo', 0)
+                    return str(saldo)
+            
+            return "ERROR: Cuenta no encontrada"
+            
+        except Exception as e:
+            self.log(f"Error al obtener saldo atomico: {e}")
+            return "ERROR: Error de base de datos"
+    
     def obtener_todos_titulares(self):
         """Obtiene todos los titulares completos de la base de datos"""
         try:
@@ -601,6 +753,28 @@ class MichiBankServer:
             elif comando.startswith("FIND_TITULAR_COMPLETO:"):
                 cedula = comando.split(":", 1)[1]
                 return self.buscar_titular_completo(cedula)
+            
+            elif comando.startswith("DEPOSITAR_ATOMICO:"):
+                partes = comando.split(":", 4)
+                cedula = partes[1]
+                id_cuenta = partes[2]
+                monto = partes[3]
+                movimiento_data = partes[4]
+                return self.depositar_atomico(cedula, id_cuenta, monto, movimiento_data)
+            
+            elif comando.startswith("RETIRAR_ATOMICO:"):
+                partes = comando.split(":", 4)
+                cedula = partes[1]
+                id_cuenta = partes[2]
+                monto = partes[3]
+                movimiento_data = partes[4]
+                return self.retirar_atomico(cedula, id_cuenta, monto, movimiento_data)
+            
+            elif comando.startswith("OBTENER_SALDO_ATOMICO:"):
+                partes = comando.split(":", 2)
+                cedula = partes[1]
+                id_cuenta = partes[2]
+                return self.obtener_saldo_atomico(cedula, id_cuenta)
             
             elif comando == "GET_ALL_TITULARES":
                 return self.obtener_todos_titulares()
