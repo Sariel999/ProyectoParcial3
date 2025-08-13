@@ -133,7 +133,7 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
     }
     
     // Debug: Verificar movimientos del titular antes de deposito
-    cout << "DEBUG: Movimientos antes de deposito:" << endl;
+    // cout << "DEBUG: Movimientos antes de deposito:" << endl;
     if (titular->getCuentaCorriente()) {
         int movCC = 0;
         if (!titular->getCuentaCorriente()->getMovimientos().vacia()) {
@@ -145,7 +145,7 @@ void OperacionesBancarias::realizarDeposito(ListaDobleCircular<Titular*>& titula
                 } while (actual != titular->getCuentaCorriente()->getMovimientos().getCabeza());
             }
         }
-        cout << "  Cuenta Corriente: " << movCC << " movimientos" << endl;
+        // cout << "  Cuenta Corriente: " << movCC << " movimientos" << endl;
     }
     
     if (!titular->getCuentasAhorro().vacia()) {
@@ -274,7 +274,7 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
     }
     
     // Debug: Verificar movimientos del titular antes de retiro
-    cout << "DEBUG: Movimientos antes de retiro:" << endl;
+    // cout << "DEBUG: Movimientos antes de retiro:" << endl;
     if (titular->getCuentaCorriente()) {
         int movCC = 0;
         if (!titular->getCuentaCorriente()->getMovimientos().vacia()) {
@@ -286,7 +286,7 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
                 } while (actual != titular->getCuentaCorriente()->getMovimientos().getCabeza());
             }
         }
-        cout << "  Cuenta Corriente: " << movCC << " movimientos" << endl;
+        // cout << "  Cuenta Corriente: " << movCC << " movimientos" << endl;
     }
     
     if (!titular->getCuentasAhorro().vacia()) {
@@ -339,8 +339,8 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
     // Guardar saldo anterior para verificación y mostrar información
     float saldoAnterior = cuenta->getSaldo();
     
-    cout << "DEBUG: Saldo antes del retiro: $" << saldoAnterior << endl;
-    cout << "DEBUG: Monto a retirar: $" << monto << endl;
+    // cout << "DEBUG: Saldo antes del retiro: $" << saldoAnterior << endl;
+    // cout << "DEBUG: Monto a retirar: $" << monto << endl;
     
     if (saldoAnterior < monto) {
         cout << "\nSaldo insuficiente para realizar el retiro." << endl;
@@ -355,12 +355,12 @@ void OperacionesBancarias::realizarRetiro(ListaDobleCircular<Titular*>& titulare
         numMov = cuenta->getMovimientos().getCabeza()->anterior->dato->getNumeroMovimiento() + 1;
     }
     
-    cout << "DEBUG: Creando movimiento de retiro..." << endl;
+    // cout << "DEBUG: Creando movimiento de retiro..." << endl;
     Movimiento* mov = new Movimiento(monto, false, numMov);
     
-    cout << "DEBUG: Saldo antes de agregarMovimiento: $" << cuenta->getSaldo() << endl;
+    // cout << "DEBUG: Saldo antes de agregarMovimiento: $" << cuenta->getSaldo() << endl;
     cuenta->agregarMovimiento(mov);  // Ya actualiza el saldo
-    cout << "DEBUG: Saldo después de agregarMovimiento: $" << cuenta->getSaldo() << endl;
+    // cout << "DEBUG: Saldo después de agregarMovimiento: $" << cuenta->getSaldo() << endl;
     
     // Sincronizar con MongoDB
     bool exitoMongo = true;

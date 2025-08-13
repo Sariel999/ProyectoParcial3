@@ -47,7 +47,7 @@ Titular* GestorBusquedaMongo::buscarTitularConCarga(ListaDobleCircular<Titular*>
     Titular* titular = buscarTitularLocal(titulares, ci);
     
     if (titular) {
-        cout << "DEBUG: Titular encontrado en lista local" << endl;
+        // cout << "DEBUG: Titular encontrado en lista local" << endl;
         return titular;
     }
     
@@ -83,15 +83,15 @@ Titular* GestorBusquedaMongo::buscarTitularConCarga(ListaDobleCircular<Titular*>
 
 Titular* GestorBusquedaMongo::buscarTitularLocal(const ListaDobleCircular<Titular*>& titulares, const std::string& ci) {
     if (titulares.vacia()) {
-        cout << "DEBUG: Lista de titulares está vacía" << endl;
+        // cout << "DEBUG: Lista de titulares está vacía" << endl;
         return nullptr;
     }
     
-    cout << "DEBUG: Buscando titular con CI: " << ci << endl;
+    // cout << "DEBUG: Buscando titular con CI: " << ci << endl;
     
     NodoDoble<Titular*>* actual = titulares.getCabeza();
     if (actual == nullptr) {
-        cout << "DEBUG: getCabeza() retornó nullptr" << endl;
+        // cout << "DEBUG: getCabeza() retornó nullptr" << endl;
         return nullptr;
     }
     
@@ -101,7 +101,7 @@ Titular* GestorBusquedaMongo::buscarTitularLocal(const ListaDobleCircular<Titula
         }
     }
 
-    cout << "DEBUG: Titular no encontrado en lista local" << endl;
+    // cout << "DEBUG: Titular no encontrado en lista local" << endl;
     return nullptr;
 }
 
@@ -116,7 +116,7 @@ bool GestorBusquedaMongo::reemplazarOAgregarTitular(ListaDobleCircular<Titular*>
         do {
             if (nodo->dato->getPersona().getCI() == ci) {
                 // Eliminar el titular anterior y reemplazar
-                cout << "DEBUG: Reemplazando titular existente con CI: " << ci << endl;
+                // cout << "DEBUG: Reemplazando titular existente con CI: " << ci << endl;
                 delete nodo->dato;
                 nodo->dato = titular;
                 encontrado = true;
@@ -128,7 +128,7 @@ bool GestorBusquedaMongo::reemplazarOAgregarTitular(ListaDobleCircular<Titular*>
     
     if (!encontrado) {
         // Si no existía, agregarlo a la lista
-        cout << "DEBUG: Agregando titular nuevo desde DB con CI: " << ci << endl;
+        // cout << "DEBUG: Agregando titular nuevo desde DB con CI: " << ci << endl;
         titulares.insertar(titular);
     }
     

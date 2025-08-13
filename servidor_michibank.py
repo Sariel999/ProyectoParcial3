@@ -276,18 +276,18 @@ class MichiBankServer:
             titular_data['fechaActualizacion'] = datetime.now().isoformat()
             
             # Debug: Mostrar estructura recibida
-            self.log(f"DEBUG - Datos recibidos para titular completo:")
-            self.log(f"  Cedula: {titular_data.get('cedula', 'N/A')}")
-            self.log(f"  Cuenta Corriente: {'Si' if titular_data.get('cuentaCorriente') else 'No'}")
-            if titular_data.get('cuentaCorriente'):
-                cc = titular_data['cuentaCorriente']
-                movimientos_cc = cc.get('movimientos', [])
-                self.log(f"    Movimientos en Cuenta Corriente: {len(movimientos_cc)}")
-            
-            self.log(f"  Cuentas Ahorro: {len(titular_data.get('cuentasAhorro', []))}")
-            for i, cuenta in enumerate(titular_data.get('cuentasAhorro', [])):
-                movimientos_ah = cuenta.get('movimientos', [])
-                self.log(f"    Cuenta Ahorro {i+1} - Movimientos: {len(movimientos_ah)}")
+            # self.log(f"DEBUG - Datos recibidos para titular completo:")
+            # self.log(f"  Cedula: {titular_data.get('cedula', 'N/A')}")
+            # self.log(f"  Cuenta Corriente: {'Si' if titular_data.get('cuentaCorriente') else 'No'}")
+            # if titular_data.get('cuentaCorriente'):
+            #     cc = titular_data['cuentaCorriente']
+            #     movimientos_cc = cc.get('movimientos', [])
+            #     self.log(f"    Movimientos en Cuenta Corriente: {len(movimientos_cc)}")
+            # 
+            # self.log(f"  Cuentas Ahorro: {len(titular_data.get('cuentasAhorro', []))}")
+            # for i, cuenta in enumerate(titular_data.get('cuentasAhorro', [])):
+            #     movimientos_ah = cuenta.get('movimientos', [])
+            #     self.log(f"    Cuenta Ahorro {i+1} - Movimientos: {len(movimientos_ah)}")
             
             # Insertar o actualizar titular completo
             result = self.db.titularCompleto.replace_one(
